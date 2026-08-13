@@ -20,6 +20,8 @@ type SillyTavernContext = {
     MESSAGE_RECEIVED?: string;
     CHARACTER_MESSAGE_RENDERED?: string;
     MESSAGE_UPDATED?: string;
+    MESSAGE_SWIPED?: string;
+    MORE_MESSAGES_LOADED?: string;
     CHAT_CHANGED?: string;
   };
   chat?: unknown;
@@ -91,6 +93,14 @@ function asContext(value: unknown): SillyTavernContext {
         MESSAGE_UPDATED:
           typeof raw_event_types.MESSAGE_UPDATED === 'string'
             ? raw_event_types.MESSAGE_UPDATED
+            : undefined,
+        MESSAGE_SWIPED:
+          typeof raw_event_types.MESSAGE_SWIPED === 'string'
+            ? raw_event_types.MESSAGE_SWIPED
+            : undefined,
+        MORE_MESSAGES_LOADED:
+          typeof raw_event_types.MORE_MESSAGES_LOADED === 'string'
+            ? raw_event_types.MORE_MESSAGES_LOADED
             : undefined,
         CHAT_CHANGED:
           typeof raw_event_types.CHAT_CHANGED === 'string'
@@ -168,6 +178,7 @@ function asChatMessage(value: unknown): ChatMessageRecord | null {
     mes: typeof value.mes === 'string' ? value.mes : undefined,
     is_user: typeof value.is_user === 'boolean' ? value.is_user : undefined,
     is_system: typeof value.is_system === 'boolean' ? value.is_system : undefined,
+    swipe_id: typeof value.swipe_id === 'number' ? value.swipe_id : undefined,
   };
 }
 
@@ -207,6 +218,8 @@ export function createSillyTavernChatHost(get_settings: () => ExtensionSettings)
       messageRendered:
         context.eventTypes?.CHARACTER_MESSAGE_RENDERED ?? 'character_message_rendered',
       messageUpdated: context.eventTypes?.MESSAGE_UPDATED ?? 'message_updated',
+      messageSwiped: context.eventTypes?.MESSAGE_SWIPED ?? 'message_swiped',
+      moreMessagesLoaded: context.eventTypes?.MORE_MESSAGES_LOADED ?? 'more_messages_loaded',
       chatChanged: context.eventTypes?.CHAT_CHANGED ?? 'chat_id_changed',
     },
     warn(message) {

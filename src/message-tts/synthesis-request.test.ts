@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_EXTENSION_SETTINGS } from '../extension-settings';
-import { buildSynthesisRequest, resolveSegmentVoice } from './synthesis-request';
+import {
+  buildSynthesisRequest,
+  hasCharacterMapping,
+  resolveSegmentVoice,
+} from './synthesis-request';
 
 describe('resolveSegmentVoice', () => {
   it('uses the mapped MiniMax voice and otherwise the default', () => {
@@ -14,7 +18,60 @@ describe('resolveSegmentVoice', () => {
   });
 });
 
+describe('hasCharacterMapping', () => {
+  it('treats empty char as allowed and skips unmapped names', () => {
+    const settings = {
+      ...DEFAULT_EXTENSION_SETTINGS,
+      voiceId: 'default-voice',
+      characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'mapped-voice' }],
+    };
+    expect(hasCharacterMapping(settings, undefined)).toBe(true);
+    expect(hasCharacterMapping(settings, '')).toBe(true);
+    expect(hasCharacterMapping(settings, '爱丽丝')).toBe(true);
+    expect(hasCharacterMapping(settings, '未知')).toBe(false);
+  });
+});
+
 describe('buildSynthesisRequest', () => {
+  it('does not fall back to the default voice for an unmapped char', () => {
+    const request = buildSynthesisRequest(
+      {
+        ...DEFAULT_EXTENSION_SETTINGS,
+        apiKey: 'k',
+        groupId: 'g',
+        voiceId: 'default-voice',
+        characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'v1' }],
+      },
+      '出去',
+      '未知',
+    );
+    expect(request).toBeNull();
+  });
+
+  it('does not fall back to the default GSVI model for an unmapped char', () => {
+    const request = buildSynthesisRequest(
+      {
+        ...DEFAULT_EXTENSION_SETTINGS,
+        ttsEngine: 'local_gsvi',
+        localGsviBaseUrl: 'http://127.0.0.1:9880',
+        localGsviModel: 'default-model',
+        localGsviLanguage: 'zh',
+        localGsviEmotion: 'neutral',
+        gsviCharacterMappings: [
+          {
+            characterName: '爱丽丝',
+            gsviVoiceId: 'mapped-model',
+            gsviLanguage: 'zh',
+            gsviEmotion: 'happy',
+          },
+        ],
+      },
+      '出去',
+      '未知',
+    );
+    expect(request).toBeNull();
+  });
+
   it('returns null when MiniMax required fields are missing', () => {
     expect(buildSynthesisRequest(DEFAULT_EXTENSION_SETTINGS, '你好', '爱丽丝')).toBeNull();
   });

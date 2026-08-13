@@ -46,4 +46,15 @@ describe('extractSaySegments', () => {
       { index: 0, text: 'Hi', char: 'X' },
     ]);
   });
+
+  it('accepts ASCII and curly quotes, including spaces around = and quotes', () => {
+    const ascii = extractSaySegments('<say char="爱丽丝">你好</say>');
+    const curly = extractSaySegments('<say char=“爱丽丝”>你好</say>');
+    const spaced = extractSaySegments('<say char = "爱丽丝">你好</say>');
+    const curly_spaced = extractSaySegments('<say char = “爱丽丝”>你好</say>');
+    expect(ascii).toEqual([{ index: 0, text: '你好', char: '爱丽丝' }]);
+    expect(curly).toEqual(ascii);
+    expect(spaced).toEqual(ascii);
+    expect(curly_spaced).toEqual(ascii);
+  });
 });

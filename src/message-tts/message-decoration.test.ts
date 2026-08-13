@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   FALLBACK_CLASS,
+  MESSAGE_SWIPE_ATTR,
   SEGMENT_CLASS,
+  buildSegmentPlaybackKey,
   decorateMessageElement,
   findMessageElement,
   isMessageDecorated,
+  parseSegmentPlaybackKey,
   removeMessageDecorations,
 } from './message-decoration';
 
@@ -62,6 +65,47 @@ describe('message decoration', () => {
     );
     expect(root.querySelector(`.${FALLBACK_CLASS}`)).not.toBeNull();
     expect(root.querySelector(`.${SEGMENT_CLASS}`)?.textContent).toContain('你好');
+  });
+
+  it('parses swipe-scoped playback keys and rejects invalid ones', () => {
+    expect(buildSegmentPlaybackKey(5, 2, 1)).toBe('5:2:1');
+    expect(parseSegmentPlaybackKey('5:2:1')).toEqual({
+      message_id: 5,
+      swipe_id: 2,
+      index: 1,
+    });
+    expect(parseSegmentPlaybackKey('5:2')).toBeNull();
+    expect(parseSegmentPlaybackKey('a:b:c')).toBeNull();
+  });
+
+  it('re-decorates when the swipe candidate changes', () => {
+    const root = createMessage(5, '第一句');
+    const playbacks = new Map();
+    decorateMessageElement(
+      root,
+      5,
+      [{ index: 0, text: '第一句', displayText: '第一句', ttsText: '第一句' }],
+      { ensureAudio: vi.fn(async () => null), downloadAudio: vi.fn() },
+      playbacks,
+      0,
+    );
+    expect(root.getAttribute(MESSAGE_SWIPE_ATTR)).toBe('0');
+    expect(buildSegmentPlaybackKey(5, 0, 0)).toBe('5:0:0');
+
+    root.querySelector('.mes_text')!.textContent = '第二句';
+    const mounted = decorateMessageElement(
+      root,
+      5,
+      [{ index: 0, text: '第二句', displayText: '第二句', ttsText: '第二句' }],
+      { ensureAudio: vi.fn(async () => null), downloadAudio: vi.fn() },
+      playbacks,
+      1,
+    );
+    expect(mounted).toBe(1);
+    expect(root.getAttribute(MESSAGE_SWIPE_ATTR)).toBe('1');
+    expect(root.querySelector(`.${SEGMENT_CLASS}`)?.textContent).toContain('第二句');
+    expect(isMessageDecorated(root, 0)).toBe(false);
+    expect(isMessageDecorated(root, 1)).toBe(true);
   });
 
   it('removes decorations and rendered flags', () => {

@@ -20,14 +20,20 @@ import {
   decorateMessageElement,
   findMessageElement,
   isMessageDecorated,
+  parseSegmentPlaybackKey,
   removeMessageDecorations,
 } from './message-decoration';
-import { buildAudioCacheKeyInput, buildSynthesisRequest } from './synthesis-request';
+import {
+  buildAudioCacheKeyInput,
+  buildSynthesisRequest,
+  hasCharacterMapping,
+} from './synthesis-request';
 
 export type ChatMessageRecord = {
   mes?: string;
   is_user?: boolean;
   is_system?: boolean;
+  swipe_id?: number;
 };
 
 export type ChatEventSource = {
@@ -44,6 +50,8 @@ export type ChatRuntimeHost = PromptInjectionHost & {
     messageReceived: string;
     messageRendered: string;
     messageUpdated: string;
+    messageSwiped: string;
+    moreMessagesLoaded: string;
     chatChanged: string;
   };
   warn?(message: string): void;
@@ -95,7 +103,29 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     return blob;
   }
 
-  function decorate(message_id: number, attempt = 0) {
+  function resolveSwipeId(message: ChatMessageRecord, root: HTMLElement | null) {
+    if (typeof message.swipe_id === 'number' && Number.isFinite(message.swipe_id)) {
+      return message.swipe_id;
+    }
+    const from_dom = Number(root?.getAttribute('swipeid'));
+    return Number.isFinite(from_dom) ? from_dom : 0;
+  }
+
+  function stopPlaybacksForOtherSwipes(message_id: number, swipe_id: number) {
+    for (const [key, handle] of playbacks) {
+      const parsed = parseSegmentPlaybackKey(key);
+      if (parsed && parsed.message_id === message_id && parsed.swipe_id !== swipe_id) {
+        handle.stop();
+        playbacks.delete(key);
+      }
+    }
+  }
+
+  function decorate(
+    message_id: number,
+    options: { attempt?: number; skipPrefetch?: boolean } = {},
+  ) {
+    const attempt = options.attempt ?? 0;
     const current = settings();
     if (!current.enabled) {
       return;
@@ -105,7 +135,9 @@ export function createChatRuntime(host: ChatRuntimeHost) {
       return;
     }
     const raw = typeof message.mes === 'string' ? message.mes : '';
-    const say_segments = extractSaySegments(raw);
+    const say_segments = extractSaySegments(raw).filter((segment) =>
+      hasCharacterMapping(current, segment.char),
+    );
     if (say_segments.length === 0) {
       return;
     }
@@ -113,13 +145,18 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     const root = host.findMessageElement(message_id) ?? findMessageElement(message_id);
     if (!root) {
       if (attempt < MAX_DOM_ATTEMPTS) {
-        window.setTimeout(() => decorate(message_id, attempt + 1), 120);
+        window.setTimeout(() => decorate(message_id, { ...options, attempt: attempt + 1 }), 120);
       }
       return;
     }
-    if (isMessageDecorated(root)) {
+    const swipe_id = resolveSwipeId(message, root);
+    if (isMessageDecorated(root, swipe_id)) {
       return;
     }
+    if (root.getAttribute('data-tavern-multi-tts-rendered') === 'true') {
+      removeMessageDecorations(root);
+    }
+    stopPlaybacksForOtherSwipes(message_id, swipe_id);
     warnConflictOnce();
 
     const prepared = say_segments.map((segment) => ({
@@ -129,6 +166,9 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     }));
     const prefetch_tasks: Array<() => Promise<void>> = [];
     const should_prefetch = (index: number) => {
+      if (options.skipPrefetch) {
+        return false;
+      }
       if (current.prefetchMode === 'auto_all') {
         return true;
       }
@@ -144,7 +184,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
       prepared,
       {
         ensureAudio: async (segment, _display, tts_text) => {
-          const key = `${message_id}:${segment.index}`;
+          const key = `${message_id}:${swipe_id}:${segment.index}`;
           if (loading.has(key)) {
             return null;
           }
@@ -163,6 +203,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
         },
       },
       playbacks,
+      swipe_id,
     );
 
     prepared.forEach((segment, index) => {
@@ -189,11 +230,19 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     window.setTimeout(() => decorate(message_id), 0);
   }
 
-  function decorateVisibleMessages() {
+  function handleSwipeEvent(...args: unknown[]) {
+    const message_id = Number(args[0]);
+    if (!Number.isFinite(message_id)) {
+      return;
+    }
+    window.setTimeout(() => decorate(message_id, { skipPrefetch: true }), 0);
+  }
+
+  function decorateVisibleMessages(options: { skipPrefetch?: boolean } = {}) {
     document.querySelectorAll<HTMLElement>('#chat .mes[mesid]').forEach((node) => {
       const message_id = Number(node.getAttribute('mesid'));
       if (Number.isFinite(message_id)) {
-        decorate(message_id);
+        decorate(message_id, options);
       }
     });
   }
@@ -212,11 +261,15 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     listen(host.eventNames.messageReceived, handleMessageEvent);
     listen(host.eventNames.messageRendered, handleMessageEvent);
     listen(host.eventNames.messageUpdated, handleMessageEvent);
+    listen(host.eventNames.messageSwiped, handleSwipeEvent);
+    listen(host.eventNames.moreMessagesLoaded, () => {
+      decorateVisibleMessages({ skipPrefetch: true });
+    });
     listen(host.eventNames.chatChanged, () => {
       applyPromptInjection(host, settings());
-      decorateVisibleMessages();
+      decorateVisibleMessages({ skipPrefetch: true });
     });
-    decorateVisibleMessages();
+    decorateVisibleMessages({ skipPrefetch: true });
     console.info(`${LOG_PREFIX} chat runtime started`);
   }
 

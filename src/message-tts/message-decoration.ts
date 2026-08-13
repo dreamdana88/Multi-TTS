@@ -2,8 +2,35 @@ import { playAudioBlob, type PlaybackHandle } from '../audio-playback';
 import type { SaySegment } from './say-parser';
 
 export const MESSAGE_RENDERED_ATTR = 'data-tavern-multi-tts-rendered';
+export const MESSAGE_SWIPE_ATTR = 'data-tavern-multi-tts-swipe';
 export const SEGMENT_CLASS = 'tavern-multi-tts-segment';
 export const FALLBACK_CLASS = 'tavern-multi-tts-fallback-list';
+
+export function buildSegmentPlaybackKey(
+  message_id: number,
+  swipe_id: number,
+  index: number,
+): string {
+  return `${message_id}:${swipe_id}:${index}`;
+}
+
+export function parseSegmentPlaybackKey(key: string): {
+  message_id: number;
+  swipe_id: number;
+  index: number;
+} | null {
+  const parts = key.split(':');
+  if (parts.length !== 3) {
+    return null;
+  }
+  const message_id = Number(parts[0]);
+  const swipe_id = Number(parts[1]);
+  const index = Number(parts[2]);
+  if (![message_id, swipe_id, index].every(Number.isFinite)) {
+    return null;
+  }
+  return { message_id, swipe_id, index };
+}
 
 export type SegmentState = 'idle' | 'loading' | 'ready' | 'playing' | 'error';
 
@@ -24,11 +51,16 @@ export function findMessageTextRoot(message_root: HTMLElement): HTMLElement | nu
   return message_root.querySelector<HTMLElement>('.mes_text');
 }
 
-export function isMessageDecorated(message_root: HTMLElement): boolean {
-  return (
-    message_root.getAttribute(MESSAGE_RENDERED_ATTR) === 'true' &&
-    message_root.querySelector(`.${SEGMENT_CLASS}`) !== null
-  );
+export function isMessageDecorated(message_root: HTMLElement, swipe_id?: number): boolean {
+  const marked = message_root.getAttribute(MESSAGE_RENDERED_ATTR) === 'true';
+  const has_segments = message_root.querySelector(`.${SEGMENT_CLASS}`) !== null;
+  if (!marked || !has_segments) {
+    return false;
+  }
+  if (swipe_id === undefined) {
+    return true;
+  }
+  return message_root.getAttribute(MESSAGE_SWIPE_ATTR) === String(swipe_id);
 }
 
 export function removeMessageDecorations(root: ParentNode = document) {
@@ -39,6 +71,7 @@ export function removeMessageDecorations(root: ParentNode = document) {
   root.querySelectorAll(`.${FALLBACK_CLASS}`).forEach((node) => node.remove());
   root.querySelectorAll(`[${MESSAGE_RENDERED_ATTR}]`).forEach((node) => {
     node.removeAttribute(MESSAGE_RENDERED_ATTR);
+    node.removeAttribute(MESSAGE_SWIPE_ATTR);
   });
 }
 
@@ -109,13 +142,14 @@ function mountSegmentInline(
 
 function createSegmentElement(
   message_id: number,
+  swipe_id: number,
   segment: SaySegment,
   display_text: string,
   tts_text: string,
   handlers: DecoratedSegmentHandlers,
   playbacks: Map<string, PlaybackHandle>,
 ): HTMLElement {
-  const key = `${message_id}:${segment.index}`;
+  const key = buildSegmentPlaybackKey(message_id, swipe_id, segment.index);
   const root = document.createElement('span');
   root.className = SEGMENT_CLASS;
   root.dataset.tavernMultiTtsKey = key;
@@ -229,9 +263,13 @@ export function decorateMessageElement(
   segments: Array<SaySegment & { displayText: string; ttsText: string }>,
   handlers: DecoratedSegmentHandlers,
   playbacks: Map<string, PlaybackHandle>,
+  swipe_id = 0,
 ): number {
-  if (isMessageDecorated(message_root)) {
+  if (isMessageDecorated(message_root, swipe_id)) {
     return 0;
+  }
+  if (message_root.getAttribute(MESSAGE_RENDERED_ATTR) === 'true') {
+    removeMessageDecorations(message_root);
   }
 
   const text_root = findMessageTextRoot(message_root) ?? message_root;
@@ -244,6 +282,7 @@ export function decorateMessageElement(
     }
     const node = createSegmentElement(
       message_id,
+      swipe_id,
       segment,
       segment.displayText,
       segment.ttsText,
@@ -268,6 +307,7 @@ export function decorateMessageElement(
 
   if (mounted > 0) {
     message_root.setAttribute(MESSAGE_RENDERED_ATTR, 'true');
+    message_root.setAttribute(MESSAGE_SWIPE_ATTR, String(swipe_id));
   }
   return mounted;
 }

@@ -14,6 +14,21 @@ export type ResolvedVoice = {
   gsviEmotion?: string;
 };
 
+export function hasCharacterMapping(
+  settings: ExtensionSettings,
+  segment_char: string | undefined,
+): boolean {
+  const character = segment_char?.trim() ?? '';
+  if (!character) {
+    return true;
+  }
+  const mappings =
+    settings.ttsEngine === 'local_gsvi'
+      ? settings.gsviCharacterMappings
+      : settings.characterMappings;
+  return mappings.some((item) => item.characterName.trim() === character);
+}
+
 export function resolveSegmentVoice(
   settings: ExtensionSettings,
   segment_char: string | undefined,
@@ -48,6 +63,9 @@ export function buildSynthesisRequest(
   text: string,
   segment_char?: string,
 ): SynthesisRequest | null {
+  if (!hasCharacterMapping(settings, segment_char)) {
+    return null;
+  }
   const voice = resolveSegmentVoice(settings, segment_char);
   if (voice.engine === 'local_gsvi') {
     if (

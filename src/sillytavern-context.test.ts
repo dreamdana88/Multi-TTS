@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createExtensionRuntime } from './extension-lifecycle';
 import { EXTENSION_ROOT_ID } from './extension-meta';
-import { createSillyTavernHost } from './sillytavern-context';
-import type { ExtensionSettings } from './extension-settings';
+import { createSillyTavernChatHost, createSillyTavernHost } from './sillytavern-context';
+import { DEFAULT_EXTENSION_SETTINGS, type ExtensionSettings } from './extension-settings';
 
 const APP_READY = 'app_ready';
 
@@ -39,7 +39,12 @@ function installFakeSillyTavern(event_source = createFakeEventSource()) {
         extensionSettings,
         saveSettingsDebounced,
         eventSource: event_source,
-        eventTypes: { APP_READY },
+        eventTypes: {
+          APP_READY,
+          MESSAGE_SWIPED: 'message_swiped',
+          MORE_MESSAGES_LOADED: 'more_messages_loaded',
+        },
+        chat: [],
       };
     },
   };
@@ -126,5 +131,21 @@ describe('createSillyTavernHost APP_READY adapter', () => {
     event_source.emit(APP_READY);
     expect(panel.mount).not.toHaveBeenCalled();
     expect(document.getElementById(EXTENSION_ROOT_ID)).toBeNull();
+  });
+});
+
+describe('createSillyTavernChatHost event mapping', () => {
+  afterEach(() => {
+    delete (globalThis as { SillyTavern?: unknown }).SillyTavern;
+    document.body.innerHTML = '';
+  });
+
+  it('listens for ST 1.18.0 MESSAGE_SWIPED and MORE_MESSAGES_LOADED names', () => {
+    installFakeSillyTavern();
+    const host = createSillyTavernChatHost(() => ({
+      ...DEFAULT_EXTENSION_SETTINGS,
+    }));
+    expect(host.eventNames.messageSwiped).toBe('message_swiped');
+    expect(host.eventNames.moreMessagesLoaded).toBe('more_messages_loaded');
   });
 });
