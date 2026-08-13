@@ -101,8 +101,8 @@ function gn(e, t) {
     if (r !== i)
       return !1;
     for (const o in e) {
-      const l = e.hasOwnProperty(o), u = t.hasOwnProperty(o);
-      if (l && !u || !l && u || !gn(e[o], t[o]))
+      const l = e.hasOwnProperty(o), f = t.hasOwnProperty(o);
+      if (l && !f || !l && f || !gn(e[o], t[o]))
         return !1;
     }
   }
@@ -448,25 +448,25 @@ function be(e, t, n, s, r, i) {
     vt++;
     return;
   }
-  const l = (u) => {
-    u && u.trigger();
+  const l = (f) => {
+    f && f.trigger();
   };
   if (_n(), t === "clear")
     o.forEach(l);
   else {
-    const u = P(e), d = u && dn(n);
-    if (u && n === "length") {
+    const f = P(e), a = f && dn(n);
+    if (f && n === "length") {
       const h = Number(s);
       o.forEach((b, T) => {
         (T === "length" || T === ct || !de(T) && T >= h) && l(b);
       });
     } else
-      switch ((n !== void 0 || o.has(void 0)) && l(o.get(n)), d && l(o.get(ct)), t) {
+      switch ((n !== void 0 || o.has(void 0)) && l(o.get(n)), a && l(o.get(ct)), t) {
         case "add":
-          u ? d && l(o.get("length")) : (l(o.get(Ce)), et(e) && l(o.get(sn)));
+          f ? a && l(o.get("length")) : (l(o.get(Ce)), et(e) && l(o.get(sn)));
           break;
         case "delete":
-          u || (l(o.get(Ce)), et(e) && l(o.get(sn)));
+          f || (l(o.get(Ce)), et(e) && l(o.get(sn)));
           break;
         case "set":
           et(e) && l(o.get(Ce));
@@ -604,30 +604,30 @@ function Wt(e, t, n) {
 }
 const $r = Array.prototype;
 function pe(e, t, n, s, r, i) {
-  const o = yn(e), l = o !== e && !/* @__PURE__ */ Ie(e), u = o[t];
-  if (u !== $r[t]) {
-    const b = u.apply(e, i);
+  const o = yn(e), l = o !== e && !/* @__PURE__ */ Ie(e), f = o[t];
+  if (f !== $r[t]) {
+    const b = f.apply(e, i);
     return l ? Me(b) : b;
   }
-  let d = n;
-  o !== e && (l ? d = function(b, T) {
+  let a = n;
+  o !== e && (l ? a = function(b, T) {
     return n.call(this, ue(e, b), T, e);
-  } : n.length > 2 && (d = function(b, T) {
+  } : n.length > 2 && (a = function(b, T) {
     return n.call(this, b, T, e);
   }));
-  const h = u.call(o, d, s);
+  const h = f.call(o, a, s);
   return l && r ? r(h) : h;
 }
 function Vn(e, t, n, s) {
   const r = yn(e), i = r !== e && !/* @__PURE__ */ Ie(e);
   let o = n, l = !1;
-  r !== e && (i ? (l = s.length === 0, o = function(d, h, b) {
-    return l && (l = !1, d = ue(e, d)), n.call(this, d, ue(e, h), b, e);
-  }) : n.length > 3 && (o = function(d, h, b) {
-    return n.call(this, d, h, b, e);
+  r !== e && (i ? (l = s.length === 0, o = function(a, h, b) {
+    return l && (l = !1, a = ue(e, a)), n.call(this, a, ue(e, h), b, e);
+  }) : n.length > 3 && (o = function(a, h, b) {
+    return n.call(this, a, h, b, e);
   }));
-  const u = r[t](o, ...s);
-  return l ? ue(e, u) : u;
+  const f = r[t](o, ...s);
+  return l ? ue(e, f) : f;
 }
 function qt(e, t, n) {
   const s = /* @__PURE__ */ R(e);
@@ -667,9 +667,9 @@ class Es {
       Object.getPrototypeOf(t) === Object.getPrototypeOf(s) ? t : void 0;
     const o = P(t);
     if (!r) {
-      let u;
-      if (o && (u = Nr[n]))
-        return u;
+      let f;
+      if (o && (f = Nr[n]))
+        return f;
       if (n === "hasOwnProperty")
         return Hr;
     }
@@ -684,8 +684,8 @@ class Es {
     if ((de(n) ? Ts.has(n) : Lr(n)) || (r || Y(t, "get", n), i))
       return l;
     if (/* @__PURE__ */ re(l)) {
-      const u = o && dn(n) ? l : l.value;
-      return r && j(u) ? /* @__PURE__ */ on(u) : u;
+      const f = o && dn(n) ? l : l.value;
+      return r && j(f) ? /* @__PURE__ */ on(f) : f;
     }
     return j(l) ? r ? /* @__PURE__ */ on(l) : /* @__PURE__ */ Is(l) : l;
   }
@@ -698,17 +698,17 @@ class Cs extends Es {
     let i = t[n];
     const o = P(t) && dn(n);
     if (!this._isShallow) {
-      const d = /* @__PURE__ */ Pe(i);
+      const a = /* @__PURE__ */ Pe(i);
       if (!/* @__PURE__ */ Ie(s) && !/* @__PURE__ */ Pe(s) && (i = /* @__PURE__ */ R(i), s = /* @__PURE__ */ R(s)), !o && /* @__PURE__ */ re(i) && !/* @__PURE__ */ re(s))
-        return d || (i.value = s), !0;
+        return a || (i.value = s), !0;
     }
-    const l = o ? Number(n) < t.length : N(t, n), u = Reflect.set(
+    const l = o ? Number(n) < t.length : N(t, n), f = Reflect.set(
       t,
       n,
       s,
       /* @__PURE__ */ re(t) ? t : r
     );
-    return t === /* @__PURE__ */ R(r) && u && (l ? Ee(s, i) && be(t, "set", n, s) : be(t, "add", n, s)), u;
+    return t === /* @__PURE__ */ R(r) && f && (l ? Ee(s, i) && be(t, "set", n, s) : be(t, "add", n, s)), f;
   }
   deleteProperty(t, n) {
     const s = N(t, n);
@@ -743,18 +743,18 @@ const Br = /* @__PURE__ */ new Cs(), Vr = /* @__PURE__ */ new jr(), Kr = /* @__P
 const rn = (e) => e, mt = (e) => Reflect.getPrototypeOf(e);
 function Ur(e, t, n) {
   return function(...s) {
-    const r = this.__v_raw, i = /* @__PURE__ */ R(r), o = et(i), l = e === "entries" || e === Symbol.iterator && o, u = e === "keys" && o, d = r[e](...s), h = n ? rn : t ? ft : Me;
+    const r = this.__v_raw, i = /* @__PURE__ */ R(r), o = et(i), l = e === "entries" || e === Symbol.iterator && o, f = e === "keys" && o, a = r[e](...s), h = n ? rn : t ? ft : Me;
     return !t && Y(
       i,
       "iterate",
-      u ? sn : Ce
+      f ? sn : Ce
     ), he(
       // inheriting all iterator properties
-      Object.create(d),
+      Object.create(a),
       {
         // iterator protocol
         next() {
-          const { value: b, done: T } = d.next();
+          const { value: b, done: T } = a.next();
           return T ? { value: b, done: T } : {
             value: l ? [h(b[0]), h(b[1])] : h(b),
             done: T
@@ -774,11 +774,11 @@ function Wr(e, t) {
     get(r) {
       const i = this.__v_raw, o = /* @__PURE__ */ R(i), l = /* @__PURE__ */ R(r);
       e || (Ee(r, l) && Y(o, "get", r), Y(o, "get", l));
-      const { has: u } = mt(o), d = t ? rn : e ? ft : Me;
-      if (u.call(o, r))
-        return d(i.get(r));
-      if (u.call(o, l))
-        return d(i.get(l));
+      const { has: f } = mt(o), a = t ? rn : e ? ft : Me;
+      if (f.call(o, r))
+        return a(i.get(r));
+      if (f.call(o, l))
+        return a(i.get(l));
       i !== o && i.get(r);
     },
     get size() {
@@ -790,8 +790,8 @@ function Wr(e, t) {
       return e || (Ee(r, l) && Y(o, "has", r), Y(o, "has", l)), r === l ? i.has(r) : i.has(r) || i.has(l);
     },
     forEach(r, i) {
-      const o = this, l = o.__v_raw, u = /* @__PURE__ */ R(l), d = t ? rn : e ? ft : Me;
-      return !e && Y(u, "iterate", Ce), l.forEach((h, b) => r.call(i, d(h), d(b), o));
+      const o = this, l = o.__v_raw, f = /* @__PURE__ */ R(l), a = t ? rn : e ? ft : Me;
+      return !e && Y(f, "iterate", Ce), l.forEach((h, b) => r.call(i, a(h), a(b), o));
     }
   };
   return he(
@@ -803,23 +803,23 @@ function Wr(e, t) {
       clear: bt("clear")
     } : {
       add(r) {
-        const i = /* @__PURE__ */ R(this), o = mt(i), l = /* @__PURE__ */ R(r), u = !t && !/* @__PURE__ */ Ie(r) && !/* @__PURE__ */ Pe(r) ? l : r;
-        return o.has.call(i, u) || Ee(r, u) && o.has.call(i, r) || Ee(l, u) && o.has.call(i, l) || (i.add(u), be(i, "add", u, u)), this;
+        const i = /* @__PURE__ */ R(this), o = mt(i), l = /* @__PURE__ */ R(r), f = !t && !/* @__PURE__ */ Ie(r) && !/* @__PURE__ */ Pe(r) ? l : r;
+        return o.has.call(i, f) || Ee(r, f) && o.has.call(i, r) || Ee(l, f) && o.has.call(i, l) || (i.add(f), be(i, "add", f, f)), this;
       },
       set(r, i) {
         !t && !/* @__PURE__ */ Ie(i) && !/* @__PURE__ */ Pe(i) && (i = /* @__PURE__ */ R(i));
-        const o = /* @__PURE__ */ R(this), { has: l, get: u } = mt(o);
-        let d = l.call(o, r);
-        d || (r = /* @__PURE__ */ R(r), d = l.call(o, r));
-        const h = u.call(o, r);
-        return o.set(r, i), d ? Ee(i, h) && be(o, "set", r, i) : be(o, "add", r, i), this;
+        const o = /* @__PURE__ */ R(this), { has: l, get: f } = mt(o);
+        let a = l.call(o, r);
+        a || (r = /* @__PURE__ */ R(r), a = l.call(o, r));
+        const h = f.call(o, r);
+        return o.set(r, i), a ? Ee(i, h) && be(o, "set", r, i) : be(o, "add", r, i), this;
       },
       delete(r) {
         const i = /* @__PURE__ */ R(this), { has: o, get: l } = mt(i);
-        let u = o.call(i, r);
-        u || (r = /* @__PURE__ */ R(r), u = o.call(i, r)), l && l.call(i, r);
-        const d = i.delete(r);
-        return u && be(i, "delete", r, void 0), d;
+        let f = o.call(i, r);
+        f || (r = /* @__PURE__ */ R(r), f = o.call(i, r)), l && l.call(i, r);
+        const a = i.delete(r);
+        return f && be(i, "delete", r, void 0), a;
       },
       clear() {
         const r = /* @__PURE__ */ R(this), i = r.size !== 0, o = r.clear();
@@ -982,12 +982,12 @@ function Mt(e, t, n, s = !0) {
   const r = t ? t.vnode : null, { errorHandler: i, throwUnhandledErrorInProduction: o } = t && t.appContext.config || B;
   if (t) {
     let l = t.parent;
-    const u = t.proxy, d = `https://vuejs.org/error-reference/#runtime-${n}`;
+    const f = t.proxy, a = `https://vuejs.org/error-reference/#runtime-${n}`;
     for (; l; ) {
       const h = l.ec;
       if (h) {
         for (let b = 0; b < h.length; b++)
-          if (h[b](e, u, d) === !1)
+          if (h[b](e, f, a) === !1)
             return;
       }
       l = l.parent;
@@ -995,8 +995,8 @@ function Mt(e, t, n, s = !0) {
     if (i) {
       Be(), pt(i, null, 10, [
         e,
-        u,
-        d
+        f,
+        a
       ]), Ve();
       return;
     }
@@ -1105,7 +1105,7 @@ function ri(e, t = ye, n) {
     try {
       l = e(...r);
     } finally {
-      for (let u = Ae.length; u > o; u--) Qs();
+      for (let f = Ae.length; f > o; f--) Qs();
       xt(i), s._d && Jn(1);
     }
     return l;
@@ -1117,8 +1117,8 @@ function we(e, t, n, s) {
   for (let o = 0; o < r.length; o++) {
     const l = r[o];
     i && (l.oldValue = i[o].value);
-    let u = l.dir[s];
-    u && (Be(), xe(u, n, 8, [
+    let f = l.dir[s];
+    f && (Be(), xe(f, n, 8, [
       e.el,
       l,
       e,
@@ -1194,34 +1194,34 @@ function rt(e, t, n, s, r = !1) {
     s.shapeFlag & 512 && s.type.__asyncResolved && s.component.subTree.component && rt(e, t, n, s.component.subTree);
     return;
   }
-  const i = s.shapeFlag & 4 ? An(s.component) : s.el, o = r ? null : i, { i: l, r: u } = e, d = t && t.r, h = l.refs === B ? l.refs = {} : l.refs, b = l.setupState, T = /* @__PURE__ */ R(b), D = b === B ? as : (A) => Un(h, A) ? !1 : N(T, A), I = (A, G) => !(G && Un(h, G));
-  if (d != null && d !== u) {
-    if (Wn(t), K(d))
-      h[d] = null, D(d) && (b[d] = null);
-    else if (/* @__PURE__ */ re(d)) {
+  const i = s.shapeFlag & 4 ? An(s.component) : s.el, o = r ? null : i, { i: l, r: f } = e, a = t && t.r, h = l.refs === B ? l.refs = {} : l.refs, b = l.setupState, T = /* @__PURE__ */ R(b), D = b === B ? as : (A) => Un(h, A) ? !1 : N(T, A), I = (A, G) => !(G && Un(h, G));
+  if (a != null && a !== f) {
+    if (Wn(t), K(a))
+      h[a] = null, D(a) && (b[a] = null);
+    else if (/* @__PURE__ */ re(a)) {
       const A = t;
-      I(d, A.k) && (d.value = null), A.k && (h[A.k] = null);
+      I(a, A.k) && (a.value = null), A.k && (h[A.k] = null);
     }
   }
-  if (L(u))
-    pt(u, l, 12, [o, h]);
+  if (L(f))
+    pt(f, l, 12, [o, h]);
   else {
-    const A = K(u), G = /* @__PURE__ */ re(u);
+    const A = K(f), G = /* @__PURE__ */ re(f);
     if (A || G) {
       const X = () => {
         if (e.f) {
-          const H = A ? D(u) ? b[u] : h[u] : I() || !e.k ? u.value : h[e.k];
+          const H = A ? D(f) ? b[f] : h[f] : I() || !e.k ? f.value : h[e.k];
           if (r)
             P(H) && hr(H, i);
           else if (P(H))
             H.includes(i) || H.push(i);
           else if (A)
-            h[u] = [i], D(u) && (b[u] = h[u]);
+            h[f] = [i], D(f) && (b[f] = h[f]);
           else {
             const U = [i];
-            I(u, e.k) && (u.value = U), e.k && (h[e.k] = U);
+            I(f, e.k) && (f.value = U), e.k && (h[e.k] = U);
           }
-        } else A ? (h[u] = o, D(u) && (b[u] = o)) : G && (I(u, e.k) && (u.value = o), e.k && (h[e.k] = o));
+        } else A ? (h[f] = o, D(f) && (b[f] = o)) : G && (I(f, e.k) && (f.value = o), e.k && (h[e.k] = o));
       };
       if (o) {
         const H = () => {
@@ -1265,7 +1265,7 @@ const it = (e) => !!e.type.__asyncLoader, js = (e) => e.type.__isKeepAlive, fi =
   get({ _: e }, t) {
     if (t === "__v_skip")
       return !0;
-    const { ctx: n, setupState: s, data: r, props: i, accessCache: o, type: l, appContext: u } = e;
+    const { ctx: n, setupState: s, data: r, props: i, accessCache: o, type: l, appContext: f } = e;
     if (t[0] !== "$") {
       const T = o[t];
       if (T !== void 0)
@@ -1289,10 +1289,10 @@ const it = (e) => !!e.type.__asyncLoader, js = (e) => e.type.__isKeepAlive, fi =
         o[t] = 0;
       }
     }
-    const d = ot[t];
+    const a = ot[t];
     let h, b;
-    if (d)
-      return t === "$attrs" && Y(e.attrs, "get", ""), d(e);
+    if (a)
+      return t === "$attrs" && Y(e.attrs, "get", ""), a(e);
     if (
       // css module (injected by vue-loader)
       (h = l.__cssModules) && (h = h[t])
@@ -1302,7 +1302,7 @@ const it = (e) => !!e.type.__asyncLoader, js = (e) => e.type.__isKeepAlive, fi =
       return o[t] = 4, n[t];
     if (
       // global properties
-      b = u.config.globalProperties, N(b, t)
+      b = f.config.globalProperties, N(b, t)
     )
       return b[t];
   },
@@ -1313,8 +1313,8 @@ const it = (e) => !!e.type.__asyncLoader, js = (e) => e.type.__isKeepAlive, fi =
   has({
     _: { data: e, setupState: t, accessCache: n, ctx: s, appContext: r, props: i, type: o }
   }, l) {
-    let u;
-    return !!(n[l] || Gt(t, l) || N(i, l) || N(s, l) || N(ot, l) || N(r.config.globalProperties, l) || (u = o.__cssModules) && u[l]);
+    let f;
+    return !!(n[l] || Gt(t, l) || N(i, l) || N(s, l) || N(ot, l) || N(r.config.globalProperties, l) || (f = o.__cssModules) && f[l]);
   },
   defineProperty(e, t, n) {
     return n.get != null ? e._.accessCache[t] = 0 : N(n, "value") && this.set(e, t, n.value, null), Reflect.defineProperty(e, t, n);
@@ -1346,8 +1346,8 @@ function di(e, t) {
   return function(s, r = null) {
     L(s) || (s = he({}, s)), r != null && !j(r) && (r = null);
     const i = Bs(), o = /* @__PURE__ */ new WeakSet(), l = [];
-    let u = !1;
-    const d = i.app = {
+    let f = !1;
+    const a = i.app = {
       _uid: ai++,
       _component: s,
       _props: r,
@@ -1361,41 +1361,41 @@ function di(e, t) {
       set config(h) {
       },
       use(h, ...b) {
-        return o.has(h) || (h && L(h.install) ? (o.add(h), h.install(d, ...b)) : L(h) && (o.add(h), h(d, ...b))), d;
+        return o.has(h) || (h && L(h.install) ? (o.add(h), h.install(a, ...b)) : L(h) && (o.add(h), h(a, ...b))), a;
       },
       mixin(h) {
-        return d;
+        return a;
       },
       component(h, b) {
-        return b ? (i.components[h] = b, d) : i.components[h];
+        return b ? (i.components[h] = b, a) : i.components[h];
       },
       directive(h, b) {
-        return b ? (i.directives[h] = b, d) : i.directives[h];
+        return b ? (i.directives[h] = b, a) : i.directives[h];
       },
       mount(h, b, T) {
-        if (!u) {
-          const D = d._ceVNode || Oe(s, r);
-          return D.appContext = i, T === !0 ? T = "svg" : T === !1 && (T = void 0), e(D, h, T), u = !0, d._container = h, h.__vue_app__ = d, An(D.component);
+        if (!f) {
+          const D = a._ceVNode || Oe(s, r);
+          return D.appContext = i, T === !0 ? T = "svg" : T === !1 && (T = void 0), e(D, h, T), f = !0, a._container = h, h.__vue_app__ = a, An(D.component);
         }
       },
       onUnmount(h) {
         l.push(h);
       },
       unmount() {
-        u && (xe(
+        f && (xe(
           l,
-          d._instance,
+          a._instance,
           16
-        ), e(null, d._container), delete d._container.__vue_app__);
+        ), e(null, a._container), delete a._container.__vue_app__);
       },
       provide(h, b) {
-        return i.provides[h] = b, d;
+        return i.provides[h] = b, a;
       },
       runWithContext(h) {
         return h();
       }
     };
-    return d;
+    return a;
   };
 }
 const hi = (e, t) => t === "modelValue" || t === "model-value" ? e.modelModifiers : e[`${t}Modifiers`] || e[`${ne(t)}Modifiers`] || e[`${De(t)}Modifiers`];
@@ -1405,22 +1405,22 @@ function pi(e, t, ...n) {
   let r = n;
   const i = t.startsWith("update:"), o = i && hi(s, t.slice(7));
   o && (o.trim && (r = n.map((h) => K(h) ? h.trim() : h)), o.number && (r = n.map(vr)));
-  let l, u = s[l = Bt(t)] || // also try camelCase event handler (#2249)
+  let l, f = s[l = Bt(t)] || // also try camelCase event handler (#2249)
   s[l = Bt(ne(t))];
-  !u && i && (u = s[l = Bt(De(t))]), u && xe(
-    u,
+  !f && i && (f = s[l = Bt(De(t))]), f && xe(
+    f,
     e,
     6,
     r
   );
-  const d = s[l + "Once"];
-  if (d) {
+  const a = s[l + "Once"];
+  if (a) {
     if (!e.emitted)
       e.emitted = {};
     else if (e.emitted[l])
       return;
     e.emitted[l] = !0, xe(
-      d,
+      a,
       e,
       6,
       r
@@ -1447,8 +1447,8 @@ function qn(e) {
     propsOptions: [i],
     slots: o,
     attrs: l,
-    emit: u,
-    render: d,
+    emit: f,
+    render: a,
     renderCache: h,
     props: b,
     data: T,
@@ -1461,7 +1461,7 @@ function qn(e) {
     if (n.shapeFlag & 4) {
       const J = r || s, qe = J;
       X = ae(
-        d.call(
+        a.call(
           qe,
           J,
           h,
@@ -1476,7 +1476,7 @@ function qn(e) {
       X = ae(
         J.length > 1 ? J(
           b,
-          { attrs: l, slots: o, emit: u }
+          { attrs: l, slots: o, emit: f }
         ) : J(
           b,
           null
@@ -1512,24 +1512,24 @@ const _i = (e) => {
   return n;
 };
 function bi(e, t, n) {
-  const { props: s, children: r, component: i } = e, { props: o, children: l, patchFlag: u } = t, d = i.emitsOptions;
+  const { props: s, children: r, component: i } = e, { props: o, children: l, patchFlag: f } = t, a = i.emitsOptions;
   if (t.dirs || t.transition)
     return !0;
-  if (n && u >= 0) {
-    if (u & 1024)
+  if (n && f >= 0) {
+    if (f & 1024)
       return !0;
-    if (u & 16)
-      return s ? Yn(s, o, d) : !!o;
-    if (u & 8) {
+    if (f & 16)
+      return s ? Yn(s, o, a) : !!o;
+    if (f & 8) {
       const h = t.dynamicProps;
       for (let b = 0; b < h.length; b++) {
         const T = h[b];
-        if (Vs(o, s, T) && !Dt(d, T))
+        if (Vs(o, s, T) && !Dt(a, T))
           return !0;
       }
     }
   } else
-    return (r || l) && (!l || !l.$stable) ? !0 : s === o ? !1 : s ? o ? Yn(s, o, d) : !0 : !!o;
+    return (r || l) && (!l || !l.$stable) ? !0 : s === o ? !1 : s ? o ? Yn(s, o, a) : !0 : !!o;
   return !1;
 }
 function Yn(e, t, n) {
@@ -1570,8 +1570,8 @@ function Si(e, t, n, s) {
     props: r,
     attrs: i,
     vnode: { patchFlag: o }
-  } = e, l = /* @__PURE__ */ R(r), [u] = e.propsOptions;
-  let d = !1;
+  } = e, l = /* @__PURE__ */ R(r), [f] = e.propsOptions;
+  let a = !1;
   if (
     // always force full diff in dev
     // - #1942 if hmr is enabled with sfc component
@@ -1585,13 +1585,13 @@ function Si(e, t, n, s) {
         if (Dt(e.emitsOptions, T))
           continue;
         const D = t[T];
-        if (u)
+        if (f)
           if (N(i, T))
-            D !== i[T] && (i[T] = D, d = !0);
+            D !== i[T] && (i[T] = D, a = !0);
           else {
             const I = ne(T);
             r[I] = cn(
-              u,
+              f,
               l,
               I,
               D,
@@ -1600,20 +1600,20 @@ function Si(e, t, n, s) {
             );
           }
         else
-          D !== i[T] && (i[T] = D, d = !0);
+          D !== i[T] && (i[T] = D, a = !0);
       }
     }
   } else {
-    qs(e, t, r, i) && (d = !0);
+    qs(e, t, r, i) && (a = !0);
     let h;
     for (const b in l)
       (!t || // for camelCase
       !N(t, b) && // it's possible the original props was passed in as kebab-case
       // and converted to camelCase (#955)
-      ((h = De(b)) === b || !N(t, h))) && (u ? n && // for camelCase
+      ((h = De(b)) === b || !N(t, h))) && (f ? n && // for camelCase
       (n[b] !== void 0 || // for kebab-case
       n[h] !== void 0) && (r[b] = cn(
-        u,
+        f,
         l,
         b,
         void 0,
@@ -1622,32 +1622,32 @@ function Si(e, t, n, s) {
       )) : delete r[b]);
     if (i !== l)
       for (const b in i)
-        (!t || !N(t, b)) && (delete i[b], d = !0);
+        (!t || !N(t, b)) && (delete i[b], a = !0);
   }
-  d && be(e.attrs, "set", "");
+  a && be(e.attrs, "set", "");
 }
 function qs(e, t, n, s) {
   const [r, i] = e.propsOptions;
   let o = !1, l;
   if (t)
-    for (let u in t) {
-      if (tt(u))
+    for (let f in t) {
+      if (tt(f))
         continue;
-      const d = t[u];
+      const a = t[f];
       let h;
-      r && N(r, h = ne(u)) ? !i || !i.includes(h) ? n[h] = d : (l || (l = {}))[h] = d : Dt(e.emitsOptions, u) || (!(u in s) || d !== s[u]) && (s[u] = d, o = !0);
+      r && N(r, h = ne(f)) ? !i || !i.includes(h) ? n[h] = a : (l || (l = {}))[h] = a : Dt(e.emitsOptions, f) || (!(f in s) || a !== s[f]) && (s[f] = a, o = !0);
     }
   if (i) {
-    const u = /* @__PURE__ */ R(n), d = l || B;
+    const f = /* @__PURE__ */ R(n), a = l || B;
     for (let h = 0; h < i.length; h++) {
       const b = i[h];
       n[b] = cn(
         r,
-        u,
+        f,
         b,
-        d[b],
+        a[b],
         e,
-        !N(d, b)
+        !N(a, b)
       );
     }
   }
@@ -1658,20 +1658,20 @@ function cn(e, t, n, s, r, i) {
   if (o != null) {
     const l = N(o, "default");
     if (l && s === void 0) {
-      const u = o.default;
-      if (o.type !== Function && !o.skipFactory && L(u)) {
-        const { propsDefaults: d } = r;
-        if (n in d)
-          s = d[n];
+      const f = o.default;
+      if (o.type !== Function && !o.skipFactory && L(f)) {
+        const { propsDefaults: a } = r;
+        if (n in a)
+          s = a[n];
         else {
           const h = nr(r);
-          s = d[n] = u.call(
+          s = a[n] = f.call(
             null,
             t
           ), h();
         }
       } else
-        s = u;
+        s = f;
       r.ce && r.ce._setProp(n, s);
     }
     o[
@@ -1692,15 +1692,15 @@ function xi(e, t, n = !1) {
   if (!i)
     return j(e) && s.set(e, He), He;
   if (P(i))
-    for (let d = 0; d < i.length; d++) {
-      const h = ne(i[d]);
+    for (let a = 0; a < i.length; a++) {
+      const h = ne(i[a]);
       Gn(h) && (o[h] = B);
     }
   else if (i)
-    for (const d in i) {
-      const h = ne(d);
+    for (const a in i) {
+      const h = ne(a);
       if (Gn(h)) {
-        const b = i[d], T = o[h] = P(b) || L(b) ? { type: b } : he({}, b), D = T.type;
+        const b = i[a], T = o[h] = P(b) || L(b) ? { type: b } : he({}, b), D = T.type;
         let I = !1, A = !0;
         if (P(D))
           for (let G = 0; G < D.length; ++G) {
@@ -1721,8 +1721,8 @@ function xi(e, t, n = !1) {
         ] = A, (I || N(T, "default")) && l.push(h);
       }
     }
-  const u = [o, l];
-  return j(e) && s.set(e, u), u;
+  const f = [o, l];
+  return j(e) && s.set(e, f), f;
 }
 function Gn(e) {
   return e[0] !== "$" && !tt(e);
@@ -1779,33 +1779,33 @@ function Ai(e, t) {
     patchProp: i,
     createElement: o,
     createText: l,
-    createComment: u,
-    setText: d,
+    createComment: f,
+    setText: a,
     setElementText: h,
     parentNode: b,
     nextSibling: T,
     setScopeId: D = an,
     insertStaticContent: I
-  } = e, A = (c, f, a, m = null, _ = null, p = null, S = void 0, v = null, y = !!f.dynamicChildren) => {
-    if (c === f)
+  } = e, A = (c, u, d, m = null, _ = null, p = null, S = void 0, v = null, y = !!u.dynamicChildren) => {
+    if (c === u)
       return;
-    c && !ze(c, f) && (m = _t(c), ve(c, _, p, !0), c = null), f.patchFlag === -2 && (y = !1, f.dynamicChildren = null);
-    const { type: g, ref: E, shapeFlag: x } = f;
+    c && !ze(c, u) && (m = _t(c), ve(c, _, p, !0), c = null), u.patchFlag === -2 && (y = !1, u.dynamicChildren = null);
+    const { type: g, ref: E, shapeFlag: x } = u;
     switch (g) {
       case Ft:
-        G(c, f, a, m);
+        G(c, u, d, m);
         break;
       case Re:
-        X(c, f, a, m);
+        X(c, u, d, m);
         break;
       case Jt:
-        c == null && H(f, a, m, S);
+        c == null && H(u, d, m, S);
         break;
       case _e:
         lr(
           c,
-          f,
-          a,
+          u,
+          d,
           m,
           _,
           p,
@@ -1817,8 +1817,8 @@ function Ai(e, t) {
       default:
         x & 1 ? qe(
           c,
-          f,
-          a,
+          u,
+          d,
           m,
           _,
           p,
@@ -1827,8 +1827,8 @@ function Ai(e, t) {
           y
         ) : x & 6 ? cr(
           c,
-          f,
-          a,
+          u,
+          d,
           m,
           _,
           p,
@@ -1837,8 +1837,8 @@ function Ai(e, t) {
           y
         ) : (x & 64 || x & 128) && g.process(
           c,
-          f,
-          a,
+          u,
+          d,
           m,
           _,
           p,
@@ -1848,48 +1848,48 @@ function Ai(e, t) {
           Ge
         );
     }
-    E != null && _ ? rt(E, c && c.ref, p, f || c, !f) : E == null && c && c.ref != null && rt(c.ref, null, p, c, !0);
-  }, G = (c, f, a, m) => {
+    E != null && _ ? rt(E, c && c.ref, p, u || c, !u) : E == null && c && c.ref != null && rt(c.ref, null, p, c, !0);
+  }, G = (c, u, d, m) => {
     if (c == null)
       s(
-        f.el = l(f.children),
-        a,
+        u.el = l(u.children),
+        d,
         m
       );
     else {
-      const _ = f.el = c.el;
-      f.children !== c.children && d(_, f.children);
+      const _ = u.el = c.el;
+      u.children !== c.children && a(_, u.children);
     }
-  }, X = (c, f, a, m) => {
+  }, X = (c, u, d, m) => {
     c == null ? s(
-      f.el = u(f.children || ""),
-      a,
+      u.el = f(u.children || ""),
+      d,
       m
-    ) : f.el = c.el;
-  }, H = (c, f, a, m) => {
+    ) : u.el = c.el;
+  }, H = (c, u, d, m) => {
     [c.el, c.anchor] = I(
       c.children,
-      f,
-      a,
+      u,
+      d,
       m,
       c.el,
       c.anchor
     );
-  }, U = ({ el: c, anchor: f }, a, m) => {
+  }, U = ({ el: c, anchor: u }, d, m) => {
     let _;
-    for (; c && c !== f; )
-      _ = T(c), s(c, a, m), c = _;
-    s(f, a, m);
-  }, J = ({ el: c, anchor: f }) => {
-    let a;
-    for (; c && c !== f; )
-      a = T(c), r(c), c = a;
-    r(f);
-  }, qe = (c, f, a, m, _, p, S, v, y) => {
-    if (f.type === "svg" ? S = "svg" : f.type === "math" && (S = "mathml"), c == null)
+    for (; c && c !== u; )
+      _ = T(c), s(c, d, m), c = _;
+    s(u, d, m);
+  }, J = ({ el: c, anchor: u }) => {
+    let d;
+    for (; c && c !== u; )
+      d = T(c), r(c), c = d;
+    r(u);
+  }, qe = (c, u, d, m, _, p, S, v, y) => {
+    if (u.type === "svg" ? S = "svg" : u.type === "math" && (S = "mathml"), c == null)
       On(
-        f,
-        a,
+        u,
+        d,
         m,
         _,
         p,
@@ -1902,7 +1902,7 @@ function Ai(e, t) {
       try {
         g && g._beginPatch(), or(
           c,
-          f,
+          u,
           _,
           p,
           S,
@@ -1913,7 +1913,7 @@ function Ai(e, t) {
         g && g._endPatch();
       }
     }
-  }, On = (c, f, a, m, _, p, S, v) => {
+  }, On = (c, u, d, m, _, p, S, v) => {
     let y, g;
     const { props: E, shapeFlag: x, transition: w, dirs: C } = c;
     if (y = c.el = o(
@@ -1937,16 +1937,16 @@ function Ai(e, t) {
     }
     C && we(c, null, m, "beforeMount");
     const O = Oi(_, w);
-    O && w.beforeEnter(y), s(y, f, a), ((g = E && E.onVnodeMounted) || O || C) && Z(() => {
+    O && w.beforeEnter(y), s(y, u, d), ((g = E && E.onVnodeMounted) || O || C) && Z(() => {
       g && ce(g, m, c), O && w.enter(y), C && we(c, null, m, "mounted");
     }, _);
-  }, Nt = (c, f, a, m, _) => {
-    if (a && D(c, a), m)
+  }, Nt = (c, u, d, m, _) => {
+    if (d && D(c, d), m)
       for (let p = 0; p < m.length; p++)
         D(c, m[p]);
     if (_) {
       let p = _.subTree;
-      if (f === p || Zs(p.type) && (p.ssContent === f || p.ssFallback === f)) {
+      if (u === p || Zs(p.type) && (p.ssContent === u || p.ssFallback === u)) {
         const S = _.vnode;
         Nt(
           c,
@@ -1957,14 +1957,14 @@ function Ai(e, t) {
         );
       }
     }
-  }, Fe = (c, f, a, m, _, p, S, v, y = 0) => {
+  }, Fe = (c, u, d, m, _, p, S, v, y = 0) => {
     for (let g = y; g < c.length; g++) {
       const E = c[g] = v ? me(c[g]) : ae(c[g]);
       A(
         null,
         E,
-        f,
-        a,
+        u,
+        d,
         m,
         _,
         p,
@@ -1972,50 +1972,50 @@ function Ai(e, t) {
         v
       );
     }
-  }, or = (c, f, a, m, _, p, S) => {
-    const v = f.el = c.el;
-    let { patchFlag: y, dynamicChildren: g, dirs: E } = f;
+  }, or = (c, u, d, m, _, p, S) => {
+    const v = u.el = c.el;
+    let { patchFlag: y, dynamicChildren: g, dirs: E } = u;
     y |= c.patchFlag & 16;
-    const x = c.props || B, w = f.props || B;
+    const x = c.props || B, w = u.props || B;
     let C;
-    if (a && Te(a, !1), (C = w.onVnodeBeforeUpdate) && ce(C, a, f, c), E && we(f, c, a, "beforeUpdate"), a && Te(a, !0), // #6385 the old vnode may be a user-wrapped non-isomorphic block
+    if (d && Te(d, !1), (C = w.onVnodeBeforeUpdate) && ce(C, d, u, c), E && we(u, c, d, "beforeUpdate"), d && Te(d, !0), // #6385 the old vnode may be a user-wrapped non-isomorphic block
     // Force full diff when block metadata is unstable.
     g && (!c.dynamicChildren || c.dynamicChildren.length !== g.length) && (y = 0, S = !1, g = null), (x.innerHTML && w.innerHTML == null || x.textContent && w.textContent == null) && h(v, ""), g ? $t(
       c.dynamicChildren,
       g,
       v,
-      a,
+      d,
       m,
-      Xt(f, _),
+      Xt(u, _),
       p
     ) : S || Ht(
       c,
-      f,
+      u,
       v,
       null,
-      a,
+      d,
       m,
-      Xt(f, _),
+      Xt(u, _),
       p,
       !1
     ), y > 0) {
       if (y & 16)
-        Pn(v, x, w, a, _);
+        Pn(v, x, w, d, _);
       else if (y & 2 && x.class !== w.class && i(v, "class", null, w.class, _), y & 4 && i(v, "style", x.style, w.style, _), y & 8) {
-        const O = f.dynamicProps;
+        const O = u.dynamicProps;
         for (let F = 0; F < O.length; F++) {
           const M = O[F], V = x[M], W = w[M];
-          (W !== V || M === "value") && i(v, M, V, W, _, a);
+          (W !== V || M === "value") && i(v, M, V, W, _, d);
         }
       }
-      y & 1 && c.children !== f.children && h(v, f.children);
-    } else !S && g == null && Pn(v, x, w, a, _);
+      y & 1 && c.children !== u.children && h(v, u.children);
+    } else !S && g == null && Pn(v, x, w, d, _);
     ((C = w.onVnodeUpdated) || E) && Z(() => {
-      C && ce(C, a, f, c), E && we(f, c, a, "updated");
+      C && ce(C, d, u, c), E && we(u, c, d, "updated");
     }, m);
-  }, $t = (c, f, a, m, _, p, S) => {
-    for (let v = 0; v < f.length; v++) {
-      const y = c[v], g = f[v], E = (
+  }, $t = (c, u, d, m, _, p, S) => {
+    for (let v = 0; v < u.length; v++) {
+      const y = c[v], g = u[v], E = (
         // oldVNode may be an errored async setup() component inside Suspense
         // which will not have a mounted element
         y.el && // - In the case of a Fragment, we need to provide the actual parent
@@ -2026,7 +2026,7 @@ function Ai(e, t) {
         y.shapeFlag & 198) ? b(y.el) : (
           // In other cases, the parent container is not actually used so we
           // just pass the block element here to avoid a DOM parentNode call.
-          a
+          d
         )
       );
       A(
@@ -2041,35 +2041,35 @@ function Ai(e, t) {
         !0
       );
     }
-  }, Pn = (c, f, a, m, _) => {
-    if (f !== a) {
-      if (f !== B)
-        for (const p in f)
-          !tt(p) && !(p in a) && i(
+  }, Pn = (c, u, d, m, _) => {
+    if (u !== d) {
+      if (u !== B)
+        for (const p in u)
+          !tt(p) && !(p in d) && i(
             c,
             p,
-            f[p],
+            u[p],
             null,
             _,
             m
           );
-      for (const p in a) {
+      for (const p in d) {
         if (tt(p)) continue;
-        const S = a[p], v = f[p];
+        const S = d[p], v = u[p];
         S !== v && p !== "value" && i(c, p, v, S, _, m);
       }
-      "value" in a && i(c, "value", f.value, a.value, _);
+      "value" in d && i(c, "value", u.value, d.value, _);
     }
-  }, lr = (c, f, a, m, _, p, S, v, y) => {
-    const g = f.el = c ? c.el : l(""), E = f.anchor = c ? c.anchor : l("");
-    let { patchFlag: x, dynamicChildren: w, slotScopeIds: C } = f;
-    C && (v = v ? v.concat(C) : C), c == null ? (s(g, a, m), s(E, a, m), Fe(
+  }, lr = (c, u, d, m, _, p, S, v, y) => {
+    const g = u.el = c ? c.el : l(""), E = u.anchor = c ? c.anchor : l("");
+    let { patchFlag: x, dynamicChildren: w, slotScopeIds: C } = u;
+    C && (v = v ? v.concat(C) : C), c == null ? (s(g, d, m), s(E, d, m), Fe(
       // #10007
       // such fragment like `<></>` will be compiled into
       // a fragment which doesn't have a children.
       // In this case fallback to an empty array
-      f.children || [],
-      a,
+      u.children || [],
+      d,
       E,
       _,
       p,
@@ -2081,7 +2081,7 @@ function Ai(e, t) {
     c.dynamicChildren && c.dynamicChildren.length === w.length ? ($t(
       c.dynamicChildren,
       w,
-      a,
+      d,
       _,
       p,
       S,
@@ -2090,15 +2090,15 @@ function Ai(e, t) {
     //  get moved around. Make sure all root level vnodes inherit el.
     // #2134 or if it's a component root, it may also get moved around
     // as the component is being moved.
-    (f.key != null || _ && f === _.subTree) && Js(
+    (u.key != null || _ && u === _.subTree) && Js(
       c,
-      f,
+      u,
       !0
       /* shallow */
     )) : Ht(
       c,
-      f,
-      a,
+      u,
+      d,
       E,
       _,
       p,
@@ -2106,23 +2106,23 @@ function Ai(e, t) {
       v,
       y
     );
-  }, cr = (c, f, a, m, _, p, S, v, y) => {
-    f.slotScopeIds = v, c == null ? f.shapeFlag & 512 ? _.ctx.activate(
-      f,
-      a,
+  }, cr = (c, u, d, m, _, p, S, v, y) => {
+    u.slotScopeIds = v, c == null ? u.shapeFlag & 512 ? _.ctx.activate(
+      u,
+      d,
       m,
       S,
       y
     ) : In(
-      f,
-      a,
+      u,
+      d,
       m,
       _,
       p,
       S,
       y
-    ) : fr(c, f, y);
-  }, In = (c, f, a, m, _, p, S) => {
+    ) : fr(c, u, y);
+  }, In = (c, u, d, m, _, p, S) => {
     const v = c.component = Bi(
       c,
       m,
@@ -2131,29 +2131,29 @@ function Ai(e, t) {
     if (js(c) && (v.ctx.renderer = Ge), Vi(v, !1, S), v.asyncDep) {
       if (_ && _.registerDep(v, Mn, S), !c.el) {
         const y = v.subTree = Oe(Re);
-        X(null, y, f, a), c.placeholder = y.el;
+        X(null, y, u, d), c.placeholder = y.el;
       }
     } else
       Mn(
         v,
         c,
-        f,
-        a,
+        u,
+        d,
         _,
         p,
         S
       );
-  }, fr = (c, f, a) => {
-    const m = f.component = c.component;
-    if (bi(c, f, a))
+  }, fr = (c, u, d) => {
+    const m = u.component = c.component;
+    if (bi(c, u, d))
       if (m.asyncDep && !m.asyncResolved) {
-        Lt(m, f, a);
+        Lt(m, u, d);
         return;
       } else
-        m.next = f, m.update();
+        m.next = u, m.update();
     else
-      f.el = c.el, m.vnode = f;
-  }, Mn = (c, f, a, m, _, p, S) => {
+      u.el = c.el, m.vnode = u;
+  }, Mn = (c, u, d, m, _, p, S) => {
     const v = () => {
       if (c.isMounted) {
         let { next: x, bu: w, u: C, parent: O, vnode: F } = c;
@@ -2187,8 +2187,8 @@ function Ai(e, t) {
         );
       } else {
         let x;
-        const { el: w, props: C } = f, { bm: O, m: F, parent: M, root: V, type: W } = c, ie = it(f);
-        Te(c, !1), O && Vt(O), !ie && (x = C && C.onVnodeBeforeMount) && ce(x, M, f), Te(c, !0);
+        const { el: w, props: C } = u, { bm: O, m: F, parent: M, root: V, type: W } = c, ie = it(u);
+        Te(c, !1), O && Vt(O), !ie && (x = C && C.onVnodeBeforeMount) && ce(x, M, u), Te(c, !0);
         {
           V.ce && V.ce._hasShadowRoot() && V.ce._injectChildStyle(
             W,
@@ -2198,21 +2198,21 @@ function Ai(e, t) {
           A(
             null,
             oe,
-            a,
+            d,
             m,
             c,
             _,
             p
-          ), f.el = oe.el;
+          ), u.el = oe.el;
         }
         if (F && Z(F, _), !ie && (x = C && C.onVnodeMounted)) {
-          const oe = f;
+          const oe = u;
           Z(
             () => ce(x, M, oe),
             _
           );
         }
-        (f.shapeFlag & 256 || M && it(M.vnode) && M.vnode.shapeFlag & 256) && c.a && Z(c.a, _), c.isMounted = !0, f = a = m = null;
+        (u.shapeFlag & 256 || M && it(M.vnode) && M.vnode.shapeFlag & 256) && c.a && Z(c.a, _), c.isMounted = !0, u = d = m = null;
       }
     };
     c.scope.on();
@@ -2220,18 +2220,18 @@ function Ai(e, t) {
     c.scope.off();
     const g = c.update = y.run.bind(y), E = c.job = y.runIfDirty.bind(y);
     E.i = c, E.id = c.uid, y.scheduler = () => Ds(E), Te(c, !0), g();
-  }, Lt = (c, f, a) => {
-    f.component = c;
+  }, Lt = (c, u, d) => {
+    u.component = c;
     const m = c.vnode.props;
-    c.vnode = f, c.next = null, Si(c, f.props, m, a), Ei(c, f.children, a), Be(), Kn(c), Ve();
-  }, Ht = (c, f, a, m, _, p, S, v, y = !1) => {
-    const g = c && c.children, E = c ? c.shapeFlag : 0, x = f.children, { patchFlag: w, shapeFlag: C } = f;
+    c.vnode = u, c.next = null, Si(c, u.props, m, d), Ei(c, u.children, d), Be(), Kn(c), Ve();
+  }, Ht = (c, u, d, m, _, p, S, v, y = !1) => {
+    const g = c && c.children, E = c ? c.shapeFlag : 0, x = u.children, { patchFlag: w, shapeFlag: C } = u;
     if (w > 0) {
       if (w & 128) {
         Rn(
           g,
           x,
-          a,
+          d,
           m,
           _,
           p,
@@ -2244,7 +2244,7 @@ function Ai(e, t) {
         ur(
           g,
           x,
-          a,
+          d,
           m,
           _,
           p,
@@ -2255,19 +2255,19 @@ function Ai(e, t) {
         return;
       }
     }
-    C & 8 ? (E & 16 && Ye(g, _, p), x !== g && h(a, x)) : E & 16 ? C & 16 ? Rn(
+    C & 8 ? (E & 16 && Ye(g, _, p), x !== g && h(d, x)) : E & 16 ? C & 16 ? Rn(
       g,
       x,
-      a,
+      d,
       m,
       _,
       p,
       S,
       v,
       y
-    ) : Ye(g, _, p, !0) : (E & 8 && h(a, ""), C & 16 && Fe(
+    ) : Ye(g, _, p, !0) : (E & 8 && h(d, ""), C & 16 && Fe(
       x,
-      a,
+      d,
       m,
       _,
       p,
@@ -2275,16 +2275,16 @@ function Ai(e, t) {
       v,
       y
     ));
-  }, ur = (c, f, a, m, _, p, S, v, y) => {
-    c = c || He, f = f || He;
-    const g = c.length, E = f.length, x = Math.min(g, E);
+  }, ur = (c, u, d, m, _, p, S, v, y) => {
+    c = c || He, u = u || He;
+    const g = c.length, E = u.length, x = Math.min(g, E);
     let w;
     for (w = 0; w < x; w++) {
-      const C = f[w] = y ? me(f[w]) : ae(f[w]);
+      const C = u[w] = y ? me(u[w]) : ae(u[w]);
       A(
         c[w],
         C,
-        a,
+        d,
         null,
         _,
         p,
@@ -2301,8 +2301,8 @@ function Ai(e, t) {
       !1,
       x
     ) : Fe(
-      f,
-      a,
+      u,
+      d,
       m,
       _,
       p,
@@ -2311,17 +2311,17 @@ function Ai(e, t) {
       y,
       x
     );
-  }, Rn = (c, f, a, m, _, p, S, v, y) => {
+  }, Rn = (c, u, d, m, _, p, S, v, y) => {
     let g = 0;
-    const E = f.length;
+    const E = u.length;
     let x = c.length - 1, w = E - 1;
     for (; g <= x && g <= w; ) {
-      const C = c[g], O = f[g] = y ? me(f[g]) : ae(f[g]);
+      const C = c[g], O = u[g] = y ? me(u[g]) : ae(u[g]);
       if (ze(C, O))
         A(
           C,
           O,
-          a,
+          d,
           null,
           _,
           p,
@@ -2334,12 +2334,12 @@ function Ai(e, t) {
       g++;
     }
     for (; g <= x && g <= w; ) {
-      const C = c[x], O = f[w] = y ? me(f[w]) : ae(f[w]);
+      const C = c[x], O = u[w] = y ? me(u[w]) : ae(u[w]);
       if (ze(C, O))
         A(
           C,
           O,
-          a,
+          d,
           null,
           _,
           p,
@@ -2353,12 +2353,12 @@ function Ai(e, t) {
     }
     if (g > x) {
       if (g <= w) {
-        const C = w + 1, O = C < E ? f[C].el : m;
+        const C = w + 1, O = C < E ? u[C].el : m;
         for (; g <= w; )
           A(
             null,
-            f[g] = y ? me(f[g]) : ae(f[g]),
-            a,
+            u[g] = y ? me(u[g]) : ae(u[g]),
+            d,
             O,
             _,
             p,
@@ -2373,7 +2373,7 @@ function Ai(e, t) {
     else {
       const C = g, O = g, F = /* @__PURE__ */ new Map();
       for (g = O; g <= w; g++) {
-        const k = f[g] = y ? me(f[g]) : ae(f[g]);
+        const k = u[g] = y ? me(u[g]) : ae(u[g]);
         k.key != null && F.set(k.key, g);
       }
       let M, V = 0;
@@ -2392,14 +2392,14 @@ function Ai(e, t) {
           le = F.get(k.key);
         else
           for (M = O; M <= w; M++)
-            if (Xe[M - O] === 0 && ze(k, f[M])) {
+            if (Xe[M - O] === 0 && ze(k, u[M])) {
               le = M;
               break;
             }
         le === void 0 ? ve(k, _, p, !0) : (Xe[le - O] = g + 1, le >= oe ? oe = le : ie = !0, A(
           k,
-          f[le],
-          a,
+          u[le],
+          d,
           null,
           _,
           p,
@@ -2410,54 +2410,54 @@ function Ai(e, t) {
       }
       const Nn = ie ? Pi(Xe) : He;
       for (M = Nn.length - 1, g = W - 1; g >= 0; g--) {
-        const k = O + g, le = f[k], $n = f[k + 1], Ln = k + 1 < E ? (
+        const k = O + g, le = u[k], $n = u[k + 1], Ln = k + 1 < E ? (
           // #13559, #14173 fallback to el placeholder for unresolved async component
           $n.el || ks($n)
         ) : m;
         Xe[g] === 0 ? A(
           null,
           le,
-          a,
+          d,
           Ln,
           _,
           p,
           S,
           v,
           y
-        ) : ie && (M < 0 || g !== Nn[M] ? gt(le, a, Ln, 2) : M--);
+        ) : ie && (M < 0 || g !== Nn[M] ? gt(le, d, Ln, 2) : M--);
       }
     }
-  }, gt = (c, f, a, m, _ = null) => {
+  }, gt = (c, u, d, m, _ = null) => {
     const { el: p, type: S, transition: v, children: y, shapeFlag: g } = c;
     if (g & 6) {
-      gt(c.component.subTree, f, a, m);
+      gt(c.component.subTree, u, d, m);
       return;
     }
     if (g & 128) {
-      c.suspense.move(f, a, m);
+      c.suspense.move(u, d, m);
       return;
     }
     if (g & 64) {
-      S.move(c, f, a, Ge);
+      S.move(c, u, d, Ge);
       return;
     }
     if (S === _e) {
-      s(p, f, a);
+      s(p, u, d);
       for (let x = 0; x < y.length; x++)
-        gt(y[x], f, a, m);
-      s(c.anchor, f, a);
+        gt(y[x], u, d, m);
+      s(c.anchor, u, d);
       return;
     }
     if (S === Jt) {
-      U(c, f, a);
+      U(c, u, d);
       return;
     }
     if (m !== 2 && g & 1 && v)
       if (m === 0)
-        v.persisted && !p[Yt] ? s(p, f, a) : (v.beforeEnter(p), s(p, f, a), Z(() => v.enter(p), _));
+        v.persisted && !p[Yt] ? s(p, u, d) : (v.beforeEnter(p), s(p, u, d), Z(() => v.enter(p), _));
       else {
         const { leave: x, delayLeave: w, afterLeave: C } = v, O = () => {
-          c.ctx.isUnmounted ? r(p) : s(p, f, a);
+          c.ctx.isUnmounted ? r(p) : s(p, u, d);
         }, F = () => {
           const M = p._isLeaving || !!p[Yt];
           p._isLeaving && p[Yt](
@@ -2470,8 +2470,8 @@ function Ai(e, t) {
         w ? w(p, O, F) : F();
       }
     else
-      s(p, f, a);
-  }, ve = (c, f, a, m = !1, _ = !1) => {
+      s(p, u, d);
+  }, ve = (c, u, d, m = !1, _ = !1) => {
     const {
       type: p,
       props: S,
@@ -2484,23 +2484,23 @@ function Ai(e, t) {
       cacheIndex: C,
       memo: O
     } = c;
-    if (x === -2 && (_ = !1), v != null && (Be(), rt(v, null, a, c, !0), Ve()), C != null && (f.renderCache[C] = void 0), E & 256) {
-      f.ctx.deactivate(c);
+    if (x === -2 && (_ = !1), v != null && (Be(), rt(v, null, d, c, !0), Ve()), C != null && (u.renderCache[C] = void 0), E & 256) {
+      u.ctx.deactivate(c);
       return;
     }
     const F = E & 1 && w, M = !it(c);
     let V;
-    if (M && (V = S && S.onVnodeBeforeUnmount) && ce(V, f, c), E & 6)
-      dr(c.component, a, m);
+    if (M && (V = S && S.onVnodeBeforeUnmount) && ce(V, u, c), E & 6)
+      dr(c.component, d, m);
     else {
       if (E & 128) {
-        c.suspense.unmount(a, m);
+        c.suspense.unmount(d, m);
         return;
       }
-      F && we(c, null, f, "beforeUnmount"), E & 64 ? c.type.remove(
+      F && we(c, null, u, "beforeUnmount"), E & 64 ? c.type.remove(
         c,
-        f,
-        a,
+        u,
+        d,
         Ge,
         m
       ) : g && // #5154
@@ -2511,67 +2511,67 @@ function Ai(e, t) {
       !g.hasOnce && // #1153: fast path should not be taken for non-stable (v-for) fragments
       (p !== _e || x > 0 && x & 64) ? Ye(
         g,
-        f,
-        a,
+        u,
+        d,
         !1,
         !0
-      ) : (p === _e && x & 384 || !_ && E & 16) && Ye(y, f, a), m && Dn(c);
+      ) : (p === _e && x & 384 || !_ && E & 16) && Ye(y, u, d), m && Dn(c);
     }
     const W = O != null && C == null;
     (M && (V = S && S.onVnodeUnmounted) || F || W) && Z(() => {
-      V && ce(V, f, c), F && we(c, null, f, "unmounted"), W && (c.el = null);
-    }, a);
+      V && ce(V, u, c), F && we(c, null, u, "unmounted"), W && (c.el = null);
+    }, d);
   }, Dn = (c) => {
-    const { type: f, el: a, anchor: m, transition: _ } = c;
-    if (f === _e) {
-      ar(a, m);
+    const { type: u, el: d, anchor: m, transition: _ } = c;
+    if (u === _e) {
+      ar(d, m);
       return;
     }
-    if (f === Jt) {
+    if (u === Jt) {
       J(c);
       return;
     }
     const p = () => {
-      r(a), _ && !_.persisted && _.afterLeave && _.afterLeave();
+      r(d), _ && !_.persisted && _.afterLeave && _.afterLeave();
     };
     if (c.shapeFlag & 1 && _ && !_.persisted) {
-      const { leave: S, delayLeave: v } = _, y = () => S(a, p);
+      const { leave: S, delayLeave: v } = _, y = () => S(d, p);
       v ? v(c.el, p, y) : y();
     } else
       p();
-  }, ar = (c, f) => {
-    let a;
-    for (; c !== f; )
-      a = T(c), r(c), c = a;
-    r(f);
-  }, dr = (c, f, a) => {
+  }, ar = (c, u) => {
+    let d;
+    for (; c !== u; )
+      d = T(c), r(c), c = d;
+    r(u);
+  }, dr = (c, u, d) => {
     const { bum: m, scope: _, job: p, subTree: S, um: v, m: y, a: g } = c;
-    Xn(y), Xn(g), m && Vt(m), _.stop(), p && (p.flags |= 8, ve(S, c, f, a)), v && Z(v, f), Z(() => {
+    Xn(y), Xn(g), m && Vt(m), _.stop(), p && (p.flags |= 8, ve(S, c, u, d)), v && Z(v, u), Z(() => {
       c.isUnmounted = !0;
-    }, f);
-  }, Ye = (c, f, a, m = !1, _ = !1, p = 0) => {
+    }, u);
+  }, Ye = (c, u, d, m = !1, _ = !1, p = 0) => {
     for (let S = p; S < c.length; S++)
-      ve(c[S], f, a, m, _);
+      ve(c[S], u, d, m, _);
   }, _t = (c) => {
     if (c.shapeFlag & 6)
       return _t(c.component.subTree);
     if (c.shapeFlag & 128)
       return c.suspense.next();
-    const f = T(c.anchor || c.el), a = f && f[ii];
-    return a ? T(a) : f;
+    const u = T(c.anchor || c.el), d = u && u[ii];
+    return d ? T(d) : u;
   };
   let jt = !1;
-  const Fn = (c, f, a) => {
+  const Fn = (c, u, d) => {
     let m;
-    c == null ? f._vnode && (ve(f._vnode, null, null, !0), m = f._vnode.component) : A(
-      f._vnode || null,
+    c == null ? u._vnode && (ve(u._vnode, null, null, !0), m = u._vnode.component) : A(
+      u._vnode || null,
       c,
-      f,
+      u,
       null,
       null,
       null,
-      a
-    ), f._vnode = c, jt || (jt = !0, Kn(m), Ns(), jt = !1);
+      d
+    ), u._vnode = c, jt || (jt = !0, Kn(m), Ns(), jt = !1);
   }, Ge = {
     p: A,
     um: ve,
@@ -2611,17 +2611,17 @@ function Js(e, t, n = !1) {
 function Pi(e) {
   const t = e.slice(), n = [0];
   let s, r, i, o, l;
-  const u = e.length;
-  for (s = 0; s < u; s++) {
-    const d = e[s];
-    if (d !== 0) {
-      if (r = n[n.length - 1], e[r] < d) {
+  const f = e.length;
+  for (s = 0; s < f; s++) {
+    const a = e[s];
+    if (a !== 0) {
+      if (r = n[n.length - 1], e[r] < a) {
         t[s] = r, n.push(s);
         continue;
       }
       for (i = 0, o = n.length - 1; i < o; )
-        l = i + o >> 1, e[n[l]] < d ? i = l + 1 : o = l;
-      d < e[n[i]] && (i > 0 && (t[s] = n[i - 1]), n[i] = s);
+        l = i + o >> 1, e[n[l]] < a ? i = l + 1 : o = l;
+      a < e[n[i]] && (i > 0 && (t[s] = n[i - 1]), n[i] = s);
     }
   }
   for (i = n.length, o = n[i - 1]; i-- > 0; )
@@ -2688,7 +2688,7 @@ const tr = ({ key: e }) => e ?? null, yt = ({
   ref_for: n
 }) => (typeof e == "number" && (e = "" + e), e != null ? K(e) || /* @__PURE__ */ re(e) || L(e) ? { i: ye, r: e, k: t, f: !!n } : e : null);
 function Q(e, t = null, n = null, s = 0, r = null, i = e === _e ? 0 : 1, o = !1, l = !1) {
-  const u = {
+  const f = {
     __v_isVNode: !0,
     __v_skip: !0,
     type: e,
@@ -2717,15 +2717,15 @@ function Q(e, t = null, n = null, s = 0, r = null, i = e === _e ? 0 : 1, o = !1,
     appContext: null,
     ctx: ye
   };
-  return l ? (Tt(u, n), i & 128 && e.normalize(u)) : n && (u.shapeFlag |= K(n) ? 8 : 16), at > 0 && // avoid a block node from tracking itself
+  return l ? (Tt(f, n), i & 128 && e.normalize(f)) : n && (f.shapeFlag |= K(n) ? 8 : 16), at > 0 && // avoid a block node from tracking itself
   !o && // has current parent block
   ee && // presence of a patch flag indicates this node needs patching on updates.
   // component nodes also should always be patched, because even if the
   // component doesn't need to update, it needs to persist the instance on to
   // the next vnode so that it can be properly unmounted later.
-  (u.patchFlag > 0 || i & 6) && // the EVENTS flag is only for hydration and if it is the only flag, the
+  (f.patchFlag > 0 || i & 6) && // the EVENTS flag is only for hydration and if it is the only flag, the
   // vnode should not be considered dynamic due to handler caching.
-  u.patchFlag !== 32 && ee.push(u), u;
+  f.patchFlag !== 32 && ee.push(f), f;
 }
 const Oe = Fi;
 function Fi(e, t = null, n = null, s = 0, r = null, i = !1) {
@@ -2740,8 +2740,8 @@ function Fi(e, t = null, n = null, s = 0, r = null, i = !1) {
   }
   if (qi(e) && (e = e.__vccOpts), t) {
     t = Ni(t);
-    let { class: l, style: u } = t;
-    l && !K(l) && (t.class = pn(l)), j(u) && (/* @__PURE__ */ wn(u) && !P(u) && (u = he({}, u)), t.style = hn(u));
+    let { class: l, style: f } = t;
+    l && !K(l) && (t.class = pn(l)), j(f) && (/* @__PURE__ */ wn(f) && !P(f) && (f = he({}, f)), t.style = hn(f));
   }
   const o = K(e) ? 1 : Zs(e) ? 128 : Rt(e) ? 64 : j(e) ? 4 : L(e) ? 2 : 0;
   return Q(
@@ -2759,12 +2759,12 @@ function Ni(e) {
   return e ? /* @__PURE__ */ wn(e) || Ws(e) ? he({}, e) : e : null;
 }
 function Ke(e, t, n = !1, s = !1) {
-  const { props: r, ref: i, patchFlag: o, children: l, transition: u } = e, d = t ? Li(r || {}, t) : r, h = {
+  const { props: r, ref: i, patchFlag: o, children: l, transition: f } = e, a = t ? Li(r || {}, t) : r, h = {
     __v_isVNode: !0,
     __v_skip: !0,
     type: e.type,
-    props: d,
-    key: d && tr(d),
+    props: a,
+    key: a && tr(a),
     ref: t && t.ref ? (
       // #2078 in the case of <component :is="vnode" ref="extra"/>
       // if the vnode itself already has a ref, cloneVNode will need to merge
@@ -2788,7 +2788,7 @@ function Ke(e, t, n = !1, s = !1) {
     dynamicChildren: e.dynamicChildren,
     appContext: e.appContext,
     dirs: e.dirs,
-    transition: u,
+    transition: f,
     // These should technically only be non-null on mounted VNodes. However,
     // they *should* be copied for kept-alive vnodes. So we just always copy
     // them since them being non-null during a mount doesn't affect the logic as
@@ -2803,9 +2803,9 @@ function Ke(e, t, n = !1, s = !1) {
     ctx: e.ctx,
     ce: e.ce
   };
-  return u && s && Tn(
+  return f && s && Tn(
     h,
-    u.clone(h)
+    f.clone(h)
   ), h;
 }
 function $i(e = " ", t = 0) {
@@ -3005,15 +3005,15 @@ function Ki(e, t) {
     ), l = ds(o);
     if (Ve(), i(), (l || e.sp) && !it(e) && ci(e), l) {
       if (o.then(zn, zn), t)
-        return o.then((u) => {
+        return o.then((f) => {
           dt(!0);
           try {
-            kn(e, u, t);
+            kn(e, f, t);
           } finally {
             dt(!1);
           }
-        }).catch((u) => {
-          Mt(u, e, 0);
+        }).catch((f) => {
+          Mt(f, e, 0);
         });
       e.asyncDep = o;
     } else
@@ -3111,10 +3111,10 @@ const ir = fn ? (e) => fn.createHTML(e) : (e) => e, Gi = "http://www.w3.org/2000
       );
       const l = Qn.content;
       if (s === "svg" || s === "mathml") {
-        const u = l.firstChild;
-        for (; u.firstChild; )
-          l.appendChild(u.firstChild);
-        l.removeChild(u);
+        const f = l.firstChild;
+        for (; f.firstChild; )
+          l.appendChild(f.firstChild);
+        l.removeChild(f);
       }
       t.insertBefore(l, n);
     }
@@ -3211,12 +3211,12 @@ function is(e, t, n, s, r) {
   const i = e.tagName;
   if (t === "value" && i !== "PROGRESS" && // custom elements may use _value internally
   !i.includes("-")) {
-    const l = i === "OPTION" ? e.getAttribute("value") || "" : e.value, u = n == null ? (
+    const l = i === "OPTION" ? e.getAttribute("value") || "" : e.value, f = n == null ? (
       // #11647: value should be set as empty string for null and undefined,
       // but <input type="checkbox"> should be set as 'on'.
       e.type === "checkbox" ? "on" : ""
     ) : String(n);
-    (l !== u || !("_value" in e)) && (e.value = u), n == null && e.removeAttribute(t), e._value = n;
+    (l !== f || !("_value" in e)) && (e.value = f), n == null && e.removeAttribute(t), e._value = n;
     return;
   }
   let o = !1;
@@ -3242,14 +3242,14 @@ function oo(e, t, n, s, r = null) {
   if (s && o)
     o.value = s;
   else {
-    const [l, u] = fo(t);
+    const [l, f] = fo(t);
     if (s) {
-      const d = i[t] = ho(
+      const a = i[t] = ho(
         s,
         r
       );
-      ro(e, l, d, u);
-    } else o && (io(e, l, o, u), i[t] = void 0);
+      ro(e, l, a, f);
+    } else o && (io(e, l, o, f), i[t] = void 0);
   }
 }
 const lo = /(Once|Passive|Capture)$/, co = /^on:?(?:Once|Passive|Capture)$/;
@@ -3274,10 +3274,10 @@ function ho(e, t) {
         i.call(s), s._stopped = !0;
       };
       const o = r.slice(), l = [s];
-      for (let u = 0; u < o.length && !s._stopped; u++) {
-        const d = o[u];
-        d && xe(
-          d,
+      for (let f = 0; f < o.length && !s._stopped; f++) {
+        const a = o[f];
+        a && xe(
+          a,
           t,
           5,
           l
@@ -3369,61 +3369,88 @@ function To() {
   };
 }
 function Eo(e, t) {
-  function n() {
-    return new Promise((s, r) => {
-      const i = e.open(t, wo);
-      i.onupgradeneeded = () => {
-        const o = i.result;
-        o.objectStoreNames.contains(te) || o.createObjectStore(te, { keyPath: "key" });
-      }, i.onsuccess = () => s(i.result), i.onerror = () => r(i.error ?? Error("IndexedDB 打开失败"));
-    });
+  let n = null, s = null, r = 0;
+  function i(l) {
+    n = l, l.onversionchange = () => {
+      l.close(), n === l && (n = null);
+    };
+    const f = l.onclose;
+    return l.onclose = (a) => {
+      n === l && (n = null), typeof f == "function" && f.call(l, a);
+    }, l;
+  }
+  async function o() {
+    return n || (s ? await s : (s = new Promise((l, f) => {
+      const a = e.open(t, wo);
+      r += 1, a.onupgradeneeded = () => {
+        const h = a.result;
+        h.objectStoreNames.contains(te) || h.createObjectStore(te, { keyPath: "key" });
+      }, a.onsuccess = () => l(i(a.result)), a.onerror = () => f(a.error ?? Error("IndexedDB 打开失败"));
+    }).finally(() => {
+      s = null;
+    }), await s));
   }
   return {
-    async get(s) {
-      const r = await n();
-      return await new Promise((i, o) => {
-        const u = r.transaction(te, "readonly").objectStore(te).get(s);
-        u.onsuccess = () => i(u.result), u.onerror = () => o(u.error ?? Error("读取缓存失败"));
+    getDb: o,
+    close() {
+      n?.close(), n = null;
+    },
+    getOpenCount() {
+      return r;
+    }
+  };
+}
+function Co(e, t) {
+  const n = Eo(e, t);
+  async function s() {
+    return await n.getDb();
+  }
+  return {
+    async get(r) {
+      const i = await s();
+      return await new Promise((o, l) => {
+        const a = i.transaction(te, "readonly").objectStore(te).get(r);
+        a.onsuccess = () => o(a.result), a.onerror = () => l(a.error ?? Error("读取缓存失败"));
       });
     },
-    async put(s) {
-      const r = await n();
-      await new Promise((i, o) => {
-        const l = r.transaction(te, "readwrite");
-        l.objectStore(te).put(s), l.oncomplete = () => i(), l.onerror = () => o(l.error ?? Error("写入缓存失败"));
+    async put(r) {
+      const i = await s();
+      await new Promise((o, l) => {
+        const f = i.transaction(te, "readwrite");
+        f.objectStore(te).put(r), f.oncomplete = () => o(), f.onerror = () => l(f.error ?? Error("写入缓存失败"));
       });
     },
-    async delete(s) {
-      const r = await n();
-      await new Promise((i, o) => {
-        const l = r.transaction(te, "readwrite");
-        l.objectStore(te).delete(s), l.oncomplete = () => i(), l.onerror = () => o(l.error ?? Error("删除缓存失败"));
+    async delete(r) {
+      const i = await s();
+      await new Promise((o, l) => {
+        const f = i.transaction(te, "readwrite");
+        f.objectStore(te).delete(r), f.oncomplete = () => o(), f.onerror = () => l(f.error ?? Error("删除缓存失败"));
       });
     },
     async clear() {
-      const s = await n();
-      await new Promise((r, i) => {
-        const o = s.transaction(te, "readwrite");
-        o.objectStore(te).clear(), o.oncomplete = () => r(), o.onerror = () => i(o.error ?? Error("清空缓存失败"));
+      const r = await s();
+      await new Promise((i, o) => {
+        const l = r.transaction(te, "readwrite");
+        l.objectStore(te).clear(), l.oncomplete = () => i(), l.onerror = () => o(l.error ?? Error("清空缓存失败"));
       });
     },
     async getAll() {
-      const s = await n();
-      return await new Promise((r, i) => {
-        const l = s.transaction(te, "readonly").objectStore(te).openCursor(), u = [];
-        l.onsuccess = () => {
-          const d = l.result;
-          if (!d) {
-            r(u);
+      const r = await s();
+      return await new Promise((i, o) => {
+        const f = r.transaction(te, "readonly").objectStore(te).openCursor(), a = [];
+        f.onsuccess = () => {
+          const h = f.result;
+          if (!h) {
+            i(a);
             return;
           }
-          u.push(d.value), d.continue();
-        }, l.onerror = () => i(l.error ?? Error("读取缓存记录失败"));
+          a.push(h.value), h.continue();
+        }, f.onerror = () => o(f.error ?? Error("读取缓存记录失败"));
       });
     }
   };
 }
-async function Co(e) {
+async function Ao(e) {
   const t = await e.getAll();
   let n = t.reduce((i, o) => i + (o.blob?.size ?? 0), 0);
   if (t.length <= fs && n <= us)
@@ -3436,8 +3463,8 @@ async function Co(e) {
     await e.delete(i.key), r -= 1, n -= i.blob?.size ?? 0;
   }
 }
-function Ao(e) {
-  const t = e?.backend === "memory" ? To() : Eo(
+function Oo(e) {
+  const t = e?.backend === "memory" ? To() : Co(
     e?.indexedDB ?? indexedDB,
     e?.dbName ?? xo
   );
@@ -3450,7 +3477,7 @@ function Ao(e) {
         key: n,
         blob: s,
         created_at: r
-      }), await Co(t);
+      }), await Ao(t);
     },
     async delete(n) {
       await t.delete(n);
@@ -3466,7 +3493,7 @@ function Ao(e) {
       };
     },
     async list(n, s) {
-      const i = (await t.getAll()).sort((l, u) => u.created_at - l.created_at), o = Math.max(0, (n - 1) * s);
+      const i = (await t.getAll()).sort((l, f) => f.created_at - l.created_at), o = Math.max(0, (n - 1) * s);
       return {
         items: i.slice(o, o + s).map((l) => ({
           key: l.key,
@@ -3474,39 +3501,39 @@ function Ao(e) {
           createdAt: l.created_at
         })),
         total: i.length,
-        totalBytes: i.reduce((l, u) => l + (u.blob?.size ?? 0), 0)
+        totalBytes: i.reduce((l, f) => l + (f.blob?.size ?? 0), 0)
       };
     }
   };
 }
-const Oo = Ao({
+const Po = Oo({
   backend: typeof indexedDB > "u" ? "memory" : "indexeddb"
 });
-function Po() {
-  return Oo.clear();
-}
 function Io() {
+  return Po.clear();
 }
-const Mo = "Tavern Multi-TTS", Zt = "tavern_multi_tts", Ro = "0.1.0", Qt = "tavern-multi-tts-root", Le = "[Tavern Multi-TTS]", Do = 1, Fo = {
+function Mo() {
+}
+const Ro = "Tavern Multi-TTS", Zt = "tavern_multi_tts", Do = "0.1.0", Qt = "tavern-multi-tts-root", Le = "[Tavern Multi-TTS]", Fo = 1, No = {
   enabled: !0
 };
-function No(e) {
+function $o(e) {
   return typeof e == "object" && e !== null && !Array.isArray(e);
 }
-function $o(e) {
-  const t = No(e) ? e : {};
+function Lo(e) {
+  const t = $o(e) ? e : {};
   return {
-    schemaVersion: Do,
-    enabled: typeof t.enabled == "boolean" ? t.enabled : Fo.enabled
+    schemaVersion: Fo,
+    enabled: typeof t.enabled == "boolean" ? t.enabled : No.enabled
   };
 }
-function Lo(e, t, n = {}) {
+function Ho(e, t, n = {}) {
   let s = !1, r = !1, i = null, o = null, l = null;
-  function u() {
-    return $o(e.readRawSettings());
+  function f() {
+    return Lo(e.readRawSettings());
   }
-  function d() {
-    const I = u();
+  function a() {
+    const I = f();
     return e.writeSettings(I), I;
   }
   function h() {
@@ -3515,7 +3542,7 @@ function Lo(e, t, n = {}) {
     const I = document.getElementById(Qt);
     I && I.remove();
     const A = e.findSettingsRoot();
-    return A ? (l = document.createElement("div"), l.id = Qt, l.dataset.tavernMultiTts = "settings", A.appendChild(l), t.mount(l, u()), o = e.onPageHide(() => {
+    return A ? (l = document.createElement("div"), l.id = Qt, l.dataset.tavernMultiTts = "settings", A.appendChild(l), t.mount(l, f()), o = e.onPageHide(() => {
       b({ removeSettings: !1 });
     }), s = !0, console.info(`${Le} settings panel mounted`), !0) : !1;
   }
@@ -3523,7 +3550,7 @@ function Lo(e, t, n = {}) {
     n.stopPlayback?.(), i?.(), i = null, r = !1, o?.(), o = null, t.unmount(), (l ?? document.getElementById(Qt))?.remove(), l = null, s = !1, I.removeSettings && e.removeSettings();
   }
   function T() {
-    s || r || (d(), !h() && (r = !0, i = e.onAppReady(() => {
+    s || r || (a(), !h() && (r = !0, i = e.onAppReady(() => {
       const I = r;
       r = !1;
       const A = i;
@@ -3533,7 +3560,7 @@ function Lo(e, t, n = {}) {
     })));
   }
   function D(I) {
-    const A = u();
+    const A = f();
     A.enabled = I, e.writeSettings(A);
   }
   return {
@@ -3545,7 +3572,7 @@ function Lo(e, t, n = {}) {
       b({ removeSettings: !1 });
     },
     install() {
-      d();
+      a();
     },
     clean() {
       return b({ removeSettings: !0 }), console.info(`${Le} settings cleaned`), n.clearCache?.();
@@ -3559,27 +3586,27 @@ function Lo(e, t, n = {}) {
     }
   };
 }
-function Ho() {
+function jo() {
   return document.querySelector("#extensions_settings2") ?? document.querySelector("#extensions_settings");
 }
 function lt(e) {
   return typeof e == "object" && e !== null;
 }
-function jo(e) {
+function Bo(e) {
   if (lt(e) && !(typeof e.on != "function" || typeof e.removeListener != "function"))
     return e;
 }
-function Bo(e) {
+function Vo(e) {
   return !lt(e) || typeof e.getContext != "function" ? null : e;
 }
-function Vo(e) {
+function Ko(e) {
   if (!lt(e))
     throw new Error("SillyTavern.getContext() 未返回对象");
   if (!lt(e.extensionSettings))
     throw new Error("SillyTavern 上下文缺少 extensionSettings");
   if (typeof e.saveSettingsDebounced != "function")
     throw new Error("SillyTavern 上下文缺少 saveSettingsDebounced");
-  const t = jo(e.eventSource), n = lt(e.eventTypes) ? {
+  const t = Bo(e.eventSource), n = lt(e.eventTypes) ? {
     APP_READY: typeof e.eventTypes.APP_READY == "string" ? e.eventTypes.APP_READY : void 0
   } : void 0;
   return {
@@ -3589,16 +3616,16 @@ function Vo(e) {
     eventTypes: n
   };
 }
-function Ko() {
-  const e = Bo(globalThis.SillyTavern);
+function Uo() {
+  const e = Vo(globalThis.SillyTavern);
   if (!e)
     throw new Error(
       "SillyTavern.getContext() 不可用。此扩展需要在 SillyTavern 1.18.0 或更高版本中运行"
     );
-  return Vo(e.getContext());
+  return Ko(e.getContext());
 }
-function Uo() {
-  const e = Ko();
+function Wo() {
+  const e = Uo();
   return {
     readRawSettings() {
       return e.extensionSettings[Zt];
@@ -3609,7 +3636,7 @@ function Uo() {
     removeSettings() {
       delete e.extensionSettings[Zt], e.saveSettingsDebounced();
     },
-    findSettingsRoot: Ho,
+    findSettingsRoot: jo,
     onAppReady(t) {
       const n = e.eventTypes?.APP_READY ?? "app_ready", s = e.eventSource;
       if (!s)
@@ -3624,7 +3651,7 @@ function Uo() {
     }
   };
 }
-const Wo = { class: "tavern-multi-tts-settings" }, qo = { class: "inline-drawer" }, Yo = { class: "inline-drawer-toggle inline-drawer-header" }, Go = { class: "inline-drawer-content" }, Xo = { class: "tavern-multi-tts-block" }, Jo = { class: "tavern-multi-tts-version" }, zo = { class: "tavern-multi-tts-block" }, ko = { class: "checkbox_label" }, Zo = ["checked"], Qo = /* @__PURE__ */ li({
+const qo = { class: "tavern-multi-tts-settings" }, Yo = { class: "inline-drawer" }, Go = { class: "inline-drawer-toggle inline-drawer-header" }, Xo = { class: "inline-drawer-content" }, Jo = { class: "tavern-multi-tts-block" }, zo = { class: "tavern-multi-tts-version" }, ko = { class: "tavern-multi-tts-block" }, Zo = { class: "checkbox_label" }, Qo = ["checked"], el = /* @__PURE__ */ li({
   __name: "settings-panel",
   props: {
     displayName: {},
@@ -3633,23 +3660,23 @@ const Wo = { class: "tavern-multi-tts-settings" }, qo = { class: "inline-drawer"
     onEnabledChange: { type: Function }
   },
   setup(e) {
-    return (t, n) => (Mi(), Di("div", Wo, [
-      Q("div", qo, [
-        Q("div", Yo, [
+    return (t, n) => (Mi(), Di("div", qo, [
+      Q("div", Yo, [
+        Q("div", Go, [
           Q("b", null, en(e.displayName), 1),
           n[1] || (n[1] = Q("div", { class: "inline-drawer-icon fa-solid fa-circle-chevron-down down" }, null, -1))
         ]),
-        Q("div", Go, [
-          Q("div", Xo, [
-            Q("small", Jo, "版本 " + en(e.version), 1)
+        Q("div", Xo, [
+          Q("div", Jo, [
+            Q("small", zo, "版本 " + en(e.version), 1)
           ]),
-          Q("div", zo, [
-            Q("label", ko, [
+          Q("div", ko, [
+            Q("label", Zo, [
               Q("input", {
                 type: "checkbox",
                 checked: e.enabled,
                 onChange: n[0] || (n[0] = (s) => e.onEnabledChange(s.target.checked))
-              }, null, 40, Zo),
+              }, null, 40, Qo),
               n[2] || (n[2] = Q("span", null, "启用 TTS 功能", -1))
             ])
           ])
@@ -3660,13 +3687,13 @@ const Wo = { class: "tavern-multi-tts-settings" }, qo = { class: "inline-drawer"
 });
 let ke = null, Ze = null;
 function Ue() {
-  return Ze || (Ze = Lo(
-    Uo(),
+  return Ze || (Ze = Ho(
+    Wo(),
     {
       mount(e, t) {
-        ke?.unmount(), ke = yo(Qo, {
-          displayName: Mo,
-          version: Ro,
+        ke?.unmount(), ke = yo(el, {
+          displayName: Ro,
+          version: Do,
           enabled: t.enabled,
           onEnabledChange(n) {
             Ze?.setEnabled(n);
@@ -3678,8 +3705,8 @@ function Ue() {
       }
     },
     {
-      stopPlayback: Io,
-      clearCache: Po
+      stopPlayback: Mo,
+      clearCache: Io
     }
   ), Ze);
 }
@@ -3691,30 +3718,30 @@ async function We(e, t) {
     throw console.error(`${Le} ${e} failed: ${s}`), n;
   }
 }
-async function tl() {
+async function nl() {
   await We("onInstall", () => Ue().install());
 }
-async function nl() {
+async function sl() {
   await We("onActivate", () => Ue().activate());
 }
-async function sl() {
+async function rl() {
   await We("onEnable", () => Ue().activate());
 }
-async function rl() {
+async function il() {
   await We("onDisable", () => Ue().disable());
 }
-async function il() {
+async function ol() {
   await We("onClean", () => Ue().clean());
 }
-async function ol() {
+async function ll() {
   await We("onDelete", () => Ue().delete());
 }
 export {
-  nl as onActivate,
-  il as onClean,
-  ol as onDelete,
-  rl as onDisable,
-  sl as onEnable,
-  tl as onInstall
+  sl as onActivate,
+  ol as onClean,
+  ll as onDelete,
+  il as onDisable,
+  rl as onEnable,
+  nl as onInstall
 };
 //# sourceMappingURL=index.js.map

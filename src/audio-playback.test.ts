@@ -59,6 +59,32 @@ describe('audio playback and download', () => {
     expect(revoke_url).toHaveBeenCalledWith('blob:6');
   });
 
+  it('does not leave an unhandled rejection when autoplay fails', async () => {
+    const unhandled: unknown[] = [];
+    const on_unhandled = (reason: unknown) => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', on_unhandled);
+    class RejectAudio extends FakeAudio {
+      play() {
+        return Promise.reject(new Error('autoplay blocked'));
+      }
+    }
+    vi.stubGlobal('URL', {
+      createObjectURL: () => 'blob:autoplay',
+      revokeObjectURL: vi.fn(),
+    });
+    vi.stubGlobal('Audio', RejectAudio);
+    const on_error = vi.fn();
+    const handle = playAudioBlob(new Blob(['x']), undefined, undefined, on_error);
+    await Promise.resolve();
+    await Promise.resolve();
+    process.off('unhandledRejection', on_unhandled);
+    expect(unhandled).toEqual([]);
+    expect(on_error).toHaveBeenCalledTimes(1);
+    await expect(handle.resume()).rejects.toThrow('autoplay blocked');
+  });
+
   it('sanitizes download file names and uses the new prefix', () => {
     expect(buildAudioFilename(3, 1)).toBe('tavern_multi_tts_3_1.mp3');
     expect(sanitizeDownloadFilename('a/b:c?.wav')).toBe('a_b_c_.wav');

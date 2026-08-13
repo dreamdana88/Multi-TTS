@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  buildLocalGsviSpeechAttempts,
+  buildLocalGsviSpeechRequest,
   createLocalGsviAdapter,
   parseGsviModelSelection,
 } from '../engines';
@@ -38,48 +38,37 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe('Local-GSVI request construction', () => {
-  it('parses modelName|version and builds the old candidate sequence', () => {
+  it('builds the single confirmed GSVI speech payload', () => {
     expect(parseGsviModelSelection('mori|v2Pro')).toEqual({ modelName: 'mori', version: 'v2Pro' });
-    const attempts = buildLocalGsviSpeechAttempts(sampleRequest());
-    expect(attempts.url).toBe('http://127.0.0.1:9880/v1/audio/speech');
-    expect(attempts.candidates.map((item) => item.label)).toEqual([
-      'inline-ref-1',
-      'inline-ref-2-voice-override',
-      'gsvi-model-id-with-other-params',
-      'raw-model-name-with-other-params',
-      'legacy-extra-shape',
-      'minimal-openai',
-    ]);
-    expect(attempts.candidates[0].payload).toMatchObject({
+    const speech = buildLocalGsviSpeechRequest(sampleRequest());
+    expect(speech.url).toBe('http://127.0.0.1:9880/v1/audio/speech');
+    expect(speech.payload).toEqual({
       model: 'GSVI-v2Pro',
       input: 'こんにちは',
       voice: 'mori',
       response_format: 'mp3',
-      other_params: {
+      speed: 1,
+      other_params: expect.objectContaining({
         prompt_lang: 'ja',
         emotion: 'neutral',
         text_lang: '日语',
-      },
+      }),
     });
   });
 
-  it('posts the first candidate with an optional bearer token', async () => {
+  it('sends exactly one speech request', async () => {
     const fetch_impl = vi.fn(async (url: string, init?: RequestInit) => {
       expect(url).toBe('http://127.0.0.1:9880/v1/audio/speech');
       expect(init?.headers).toMatchObject({
         Authorization: 'Bearer gsvi-token',
         'Content-Type': 'application/json',
       });
-      const body = JSON.parse(String(init?.body)) as { model: string; input: string };
+      const body = JSON.parse(String(init?.body)) as { model: string };
       expect(body.model).toBe('GSVI-v2Pro');
-      expect(body.input).toBe('こんにちは');
       return jsonResponse({ audio: 'QUJDREVGR0hJSktMTU5PUA==' });
     });
 
-    const blob = await createLocalGsviAdapter({ fetchImpl: fetch_impl }).synthesize(
-      sampleRequest(),
-    );
-    expect(blob.type).toBe('audio/mpeg');
+    await createLocalGsviAdapter({ fetchImpl: fetch_impl }).synthesize(sampleRequest());
     expect(fetch_impl).toHaveBeenCalledTimes(1);
   });
 
@@ -115,7 +104,7 @@ describe('Local-GSVI request construction', () => {
       createLocalGsviAdapter({
         fetchImpl: async () => new Response('nope', { status: 503 }),
       }).synthesize(sampleRequest()),
-    ).rejects.toMatchObject({ code: 'missing_audio' });
+    ).rejects.toMatchObject({ code: 'http', status: 503 });
 
     await expect(
       createLocalGsviAdapter({
@@ -132,5 +121,22 @@ describe('Local-GSVI request construction', () => {
         fetchImpl: async () => jsonResponse({ message: 'no audio here' }),
       }).synthesize(sampleRequest()),
     ).rejects.toMatchObject({ code: 'missing_audio' });
+  });
+
+  it('does not send the auth token to a cross-origin audio URL', async () => {
+    const fetch_impl = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/v1/audio/speech')) {
+        return jsonResponse({ audio_url: 'https://cdn.example/audio.wav' });
+      }
+      expect(url).toBe('https://cdn.example/audio.wav');
+      expect(init?.headers).toEqual({});
+      return new Response(new Uint8Array([1, 2, 3]), {
+        status: 200,
+        headers: { 'content-type': 'audio/wav' },
+      });
+    });
+
+    await createLocalGsviAdapter({ fetchImpl: fetch_impl }).synthesize(sampleRequest());
+    expect(fetch_impl).toHaveBeenCalledTimes(2);
   });
 });

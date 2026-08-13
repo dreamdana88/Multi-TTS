@@ -1,5 +1,7 @@
 export type TtsEngineId = 'minimax' | 'local_gsvi';
 
+export type MinimaxRegion = 'international' | 'beijing';
+
 export type VoiceDescriptor = {
   id: string;
   name: string;
@@ -23,6 +25,7 @@ export type MinimaxSynthesisRequest = {
   model: string;
   speed: number;
   vol: number;
+  region: MinimaxRegion;
   timeoutMs: number;
   signal?: AbortSignal;
   forceRefresh?: boolean;

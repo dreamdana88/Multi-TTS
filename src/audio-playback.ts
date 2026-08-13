@@ -79,7 +79,7 @@ export function playAudioBlob(
     }
   };
 
-  void resume();
+  void resume().catch(() => undefined);
 
   return {
     stop: () => {

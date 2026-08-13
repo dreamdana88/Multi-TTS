@@ -1,4 +1,4 @@
-import { fetchWithTimeout, joinUrl, readJsonBody, type FetchLike } from './http';
+import { fetchWithTimeout, joinUrl, normalizeServiceOrigin, type FetchLike } from './http';
 import { TtsRequestError } from './request-error';
 import { logEngineInfo, logEngineWarn } from './safe-log';
 import type { LocalGsviSynthesisRequest, TtsEngineAdapter, VoiceDescriptor } from './contract';
@@ -44,107 +44,40 @@ function normalizeGsviTextLang(text_lang: string) {
   return alias_map[raw] ?? raw;
 }
 
-export function buildLocalGsviSpeechAttempts(request: LocalGsviSynthesisRequest) {
-  const model_id = request.modelId.trim();
-  const parsed = parseGsviModelSelection(model_id);
+export function buildLocalGsviSpeechRequest(request: LocalGsviSynthesisRequest) {
+  const parsed = parseGsviModelSelection(request.modelId);
   const model_name = parsed.modelName.trim();
   const version = normalizeGsviVersion(parsed.version) || 'v2Pro';
-  const other_params = {
-    app_key: '',
-    text_lang: normalizeGsviTextLang(request.textLang),
-    prompt_lang: request.language.trim(),
-    emotion: request.emotion.trim(),
-    top_k: request.topK,
-    top_p: request.topP,
-    temperature: request.temperature,
-    text_split_method: request.textSplitMethod.trim() || '按标点符号切',
-    batch_size: request.batchSize,
-    batch_threshold: 0.75,
-    split_bucket: true,
-    fragment_interval: 0.3,
-    parallel_infer: true,
-    repetition_penalty: 1.35,
-    sample_steps: 16,
-    if_sr: false,
-    seed: -1,
-  };
-
-  const candidates = [
-    {
-      label: 'inline-ref-1',
-      payload: {
-        model: `GSVI-${version}`,
-        input: request.text,
-        voice: model_name,
-        response_format: request.format,
-        speed: request.speed,
-        other_params,
-      },
-    },
-    {
-      label: 'inline-ref-2-voice-override',
-      payload: {
-        model: `GSVI-${version}`,
-        input: request.text,
-        voice: model_name,
-        response_format: request.format,
-        speed: request.speed,
-        other_params,
-      },
-    },
-    {
-      label: 'gsvi-model-id-with-other-params',
-      payload: {
-        model: model_id,
-        input: request.text,
-        voice: model_name,
-        response_format: request.format,
-        speed: request.speed,
-        other_params,
-      },
-    },
-    {
-      label: 'raw-model-name-with-other-params',
-      payload: {
-        model: model_name,
-        input: request.text,
-        voice: model_name,
-        response_format: request.format,
-        speed: request.speed,
-        other_params,
-      },
-    },
-    {
-      label: 'legacy-extra-shape',
-      payload: {
-        model: model_id,
-        input: request.text,
-        voice: model_name,
-        response_format: request.format,
-        speed: request.speed,
-        extra: {
-          character: model_name,
-          language: request.language.trim(),
-          emotion: request.emotion.trim(),
-          use_reference_audio: true,
-        },
-      },
-    },
-    {
-      label: 'minimal-openai',
-      payload: {
-        model: `GSVI-${version}`,
-        input: request.text,
-        voice: model_name,
-      },
-    },
-  ];
-
   return {
     url: joinUrl(request.baseUrl.trim(), '/v1/audio/speech'),
     modelName: model_name,
     version,
-    candidates,
+    payload: {
+      model: `GSVI-${version}`,
+      input: request.text,
+      voice: model_name,
+      response_format: request.format,
+      speed: request.speed,
+      other_params: {
+        app_key: '',
+        text_lang: normalizeGsviTextLang(request.textLang),
+        prompt_lang: request.language.trim(),
+        emotion: request.emotion.trim(),
+        top_k: request.topK,
+        top_p: request.topP,
+        temperature: request.temperature,
+        text_split_method: request.textSplitMethod.trim() || '按标点符号切',
+        batch_size: request.batchSize,
+        batch_threshold: 0.75,
+        split_bucket: true,
+        fragment_interval: 0.3,
+        parallel_infer: true,
+        repetition_penalty: 1.35,
+        sample_steps: 16,
+        if_sr: false,
+        seed: -1,
+      },
+    },
   };
 }
 
@@ -282,33 +215,29 @@ export function createLocalGsviAdapter(options?: { fetchImpl?: FetchLike }): Tts
     raw_path: string,
     auth_token: string,
     timeout_ms: number,
+    signal?: AbortSignal,
   ) {
-    const is_absolute = /^https?:\/\//i.test(raw_path);
-    const normalized = raw_path.replace(/^\/+/, '');
-    const candidate_urls = is_absolute
-      ? [raw_path]
-      : [
-          joinUrl(base_url, raw_path),
-          joinUrl(base_url, `/${normalized}`),
-          joinUrl(base_url, `/outputs/${normalized}`),
-        ];
-
-    for (const url of candidate_urls) {
-      try {
-        const response = await fetchWithTimeout(
-          fetch_impl,
-          url,
-          { method: 'GET', headers: authHeaders(auth_token) },
-          timeout_ms,
-        );
-        if (response.ok) {
-          return await response.blob();
-        }
-      } catch {
-        // try the next candidate path
-      }
+    const url = /^https?:\/\//i.test(raw_path) ? raw_path : joinUrl(base_url, raw_path);
+    let same_origin = false;
+    try {
+      same_origin = normalizeServiceOrigin(base_url) === new URL(url).origin;
+    } catch {
+      same_origin = false;
     }
-    throw new TtsRequestError(`下载 GSVI 输出失败：未命中可用路径`, 'missing_audio');
+    const timed = await fetchWithTimeout(
+      fetch_impl,
+      url,
+      {
+        method: 'GET',
+        headers: same_origin ? authHeaders(auth_token) : {},
+        signal,
+      },
+      timeout_ms,
+    );
+    if (!timed.ok) {
+      throw new TtsRequestError(`下载 GSVI 输出失败：HTTP ${timed.status}`, 'http', timed.status);
+    }
+    return await timed.blob();
   }
 
   return {
@@ -356,9 +285,10 @@ export function createLocalGsviAdapter(options?: { fetchImpl?: FetchLike }): Tts
             logEngineWarn('local_gsvi', `GET /models/${version} failed`, {
               status: response.status,
             });
+            response.close();
             continue;
           }
-          const payload = await readJsonBody(response);
+          const payload = await response.json();
           const models_map =
             isRecord(payload) && isRecord(payload.models) ? payload.models : payload;
           if (!isRecord(models_map)) {
@@ -395,63 +325,61 @@ export function createLocalGsviAdapter(options?: { fetchImpl?: FetchLike }): Tts
         throw new TtsRequestError('Local-GSVI 适配器收到了错误的引擎请求', 'config');
       }
       assertGsviRequest(request);
-      const attempts = buildLocalGsviSpeechAttempts(request);
+      const speech = buildLocalGsviSpeechRequest(request);
       const headers = {
         'Content-Type': 'application/json',
         ...authHeaders(request.authToken),
       };
       logEngineInfo('local_gsvi', 'synthesize', {
-        url: attempts.url,
-        model: attempts.modelName,
-        version: attempts.version,
+        url: speech.url,
+        model: speech.modelName,
+        version: speech.version,
         text: request.text,
       });
 
-      let last_message = '';
-      for (const candidate of attempts.candidates) {
-        logEngineInfo('local_gsvi', `try ${candidate.label}`, { model: candidate.payload.model });
-        const response = await fetchWithTimeout(
-          fetch_impl,
-          attempts.url,
-          {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(candidate.payload),
-            signal: request.signal,
-          },
-          request.timeoutMs,
-        );
-        if (!response.ok) {
-          last_message = `HTTP ${response.status}`;
-          continue;
-        }
-        const content_type = response.headers.get('content-type')?.toLowerCase() ?? '';
-        if (content_type.includes('application/json')) {
-          const data = await readJsonBody(response);
-          const base64_audio = pickAudioBase64FromJson(data);
-          if (base64_audio) {
-            return new Blob([Uint8Array.from(base64ToBytes(base64_audio))], {
-              type: request.format === 'wav' ? 'audio/wav' : 'audio/mpeg',
-            });
-          }
-          const audio_path = pickAudioPathFromJson(data);
-          if (audio_path) {
-            return await fetchAudioByPath(
-              request.baseUrl.trim(),
-              audio_path,
-              request.authToken ?? '',
-              request.timeoutMs,
-            );
-          }
-          last_message = extractJsonMessage(data) || 'JSON 响应中未找到音频';
-          continue;
-        }
-        return await response.blob();
-      }
-      throw new TtsRequestError(
-        `Local-GSVI 未返回可用音频：${last_message || '请检查模型与接口模式'}`,
-        'missing_audio',
+      const response = await fetchWithTimeout(
+        fetch_impl,
+        speech.url,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(speech.payload),
+          signal: request.signal,
+        },
+        request.timeoutMs,
       );
+      if (!response.ok) {
+        throw new TtsRequestError(
+          `Local-GSVI 请求失败：HTTP ${response.status}`,
+          'http',
+          response.status,
+        );
+      }
+      const content_type = response.headers.get('content-type')?.toLowerCase() ?? '';
+      if (content_type.includes('application/json')) {
+        const data = await response.json();
+        const base64_audio = pickAudioBase64FromJson(data);
+        if (base64_audio) {
+          return new Blob([Uint8Array.from(base64ToBytes(base64_audio))], {
+            type: request.format === 'wav' ? 'audio/wav' : 'audio/mpeg',
+          });
+        }
+        const audio_path = pickAudioPathFromJson(data);
+        if (audio_path) {
+          return await fetchAudioByPath(
+            request.baseUrl.trim(),
+            audio_path,
+            request.authToken ?? '',
+            request.timeoutMs,
+            request.signal,
+          );
+        }
+        throw new TtsRequestError(
+          `Local-GSVI 未返回可用音频：${extractJsonMessage(data) || 'JSON 响应中未找到音频'}`,
+          'missing_audio',
+        );
+      }
+      return await response.blob();
     },
   };
 }

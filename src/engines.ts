@@ -5,6 +5,7 @@ import type { TtsEngineAdapter, TtsEngineId } from './engines/contract';
 export type {
   EngineHealth,
   LocalGsviSynthesisRequest,
+  MinimaxRegion,
   MinimaxSynthesisRequest,
   SynthesisRequest,
   TtsEngineAdapter,
@@ -13,16 +14,19 @@ export type {
 } from './engines/contract';
 export { TtsRequestError, isTtsRequestError } from './engines/request-error';
 export {
+  MINIMAX_API_URLS,
   MINIMAX_TTS_ENDPOINTS,
   MINIMAX_VOICE_ENDPOINTS,
   buildMinimaxAuthHeader,
   buildMinimaxT2aPayload,
+  buildVoiceCatalogCacheKey,
   createMinimaxAdapter,
   decodeMinimaxAudioString,
+  getMinimaxApiUrls,
   normalizeMinimaxApiKey,
 } from './engines/minimax';
 export {
-  buildLocalGsviSpeechAttempts,
+  buildLocalGsviSpeechRequest,
   createLocalGsviAdapter,
   parseGsviModelSelection,
 } from './engines/local-gsvi';

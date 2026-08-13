@@ -30,14 +30,17 @@ export type AudioCacheListResult = {
 export type AudioCacheKeyInput = {
   text: string;
   engine: 'minimax' | 'local_gsvi';
-  minimax: {
+  minimax?: {
+    region: 'international' | 'beijing';
+    groupId: string;
     model: string;
     voiceId: string;
     speed: number;
     vol: number;
     format: 'mp3';
   };
-  localGsvi: {
+  localGsvi?: {
+    origin: string;
     model: string;
     format: 'mp3' | 'wav';
     useReferenceAudio: boolean;
@@ -71,13 +74,54 @@ type CacheBackend = {
   getAll(): Promise<AudioCacheRecord[]>;
 };
 
+export function normalizeCacheOrigin(base_url: string): string {
+  const trimmed = base_url.trim();
+  try {
+    return new URL(trimmed.includes('://') ? trimmed : `http://${trimmed}`).origin;
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+}
+
 export async function createAudioCacheKey(input: AudioCacheKeyInput): Promise<string> {
-  const raw = JSON.stringify({
-    text: input.text,
-    engine: input.engine,
-    minimax: input.minimax,
-    localGsvi: input.localGsvi,
-  });
+  const scoped =
+    input.engine === 'minimax'
+      ? {
+          text: input.text,
+          engine: input.engine,
+          region: input.minimax?.region ?? '',
+          groupId: input.minimax?.groupId ?? '',
+          model: input.minimax?.model ?? '',
+          voiceId: input.minimax?.voiceId ?? '',
+          speed: input.minimax?.speed,
+          vol: input.minimax?.vol,
+          format: input.minimax?.format ?? 'mp3',
+        }
+      : {
+          text: input.text,
+          engine: input.engine,
+          origin: input.localGsvi?.origin ?? '',
+          model: input.localGsvi?.model ?? '',
+          format: input.localGsvi?.format ?? 'mp3',
+          useReferenceAudio: input.localGsvi?.useReferenceAudio ?? false,
+          character: input.localGsvi?.character ?? '',
+          language: input.localGsvi?.language ?? '',
+          emotion: input.localGsvi?.emotion ?? '',
+          referenceText: input.localGsvi?.referenceText ?? '',
+          speed: input.localGsvi?.speed,
+          topK: input.localGsvi?.topK,
+          topP: input.localGsvi?.topP,
+          temperature: input.localGsvi?.temperature,
+          textLang: input.localGsvi?.textLang ?? '',
+          textSplitMethod: input.localGsvi?.textSplitMethod ?? '',
+        };
+
+  const raw = JSON.stringify(scoped);
+  if (
+    Object.keys(scoped).some((key) => /api[_-]?key|authorization|token|secret|password/i.test(key))
+  ) {
+    throw new Error('音频缓存键不得包含密钥字段');
+  }
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
   return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
 }
@@ -103,19 +147,72 @@ function createMemoryBackend(): CacheBackend {
   };
 }
 
-function createIndexedDbBackend(indexed_db: IDBFactory, db_name: string): CacheBackend {
-  function openDb(): Promise<IDBDatabase> {
-    return new Promise((resolve, reject) => {
+export function createIndexedDbConnection(indexed_db: IDBFactory, db_name: string) {
+  let db: IDBDatabase | null = null;
+  let opening: Promise<IDBDatabase> | null = null;
+  let open_count = 0;
+
+  function attach(database: IDBDatabase) {
+    db = database;
+    database.onversionchange = () => {
+      database.close();
+      if (db === database) {
+        db = null;
+      }
+    };
+    const original_onclose = database.onclose;
+    database.onclose = (event) => {
+      if (db === database) {
+        db = null;
+      }
+      if (typeof original_onclose === 'function') {
+        original_onclose.call(database, event);
+      }
+    };
+    return database;
+  }
+
+  async function getDb(): Promise<IDBDatabase> {
+    if (db) {
+      return db;
+    }
+    if (opening) {
+      return await opening;
+    }
+    opening = new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexed_db.open(db_name, AUDIO_CACHE_DB_VERSION);
+      open_count += 1;
       request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(AUDIO_CACHE_STORE_NAME)) {
-          db.createObjectStore(AUDIO_CACHE_STORE_NAME, { keyPath: 'key' });
+        const next_db = request.result;
+        if (!next_db.objectStoreNames.contains(AUDIO_CACHE_STORE_NAME)) {
+          next_db.createObjectStore(AUDIO_CACHE_STORE_NAME, { keyPath: 'key' });
         }
       };
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => resolve(attach(request.result));
       request.onerror = () => reject(request.error ?? Error('IndexedDB 打开失败'));
+    }).finally(() => {
+      opening = null;
     });
+    return await opening;
+  }
+
+  return {
+    getDb,
+    close() {
+      db?.close();
+      db = null;
+    },
+    getOpenCount() {
+      return open_count;
+    },
+  };
+}
+
+function createIndexedDbBackend(indexed_db: IDBFactory, db_name: string): CacheBackend {
+  const connection = createIndexedDbConnection(indexed_db, db_name);
+
+  async function openDb(): Promise<IDBDatabase> {
+    return await connection.getDb();
   }
 
   return {

@@ -1,22 +1,38 @@
-import { fetchWithTimeout, readJsonBody, sleep, type FetchLike } from './http';
+import { fetchWithTimeout, sleep, type FetchLike } from './http';
 import { TtsRequestError } from './request-error';
 import { logEngineInfo, logEngineWarn } from './safe-log';
-import type { MinimaxSynthesisRequest, TtsEngineAdapter, VoiceDescriptor } from './contract';
+import type {
+  MinimaxRegion,
+  MinimaxSynthesisRequest,
+  TtsEngineAdapter,
+  VoiceDescriptor,
+} from './contract';
+
+export const MINIMAX_API_URLS = {
+  international: {
+    tts: 'https://api.minimaxi.com/v1/t2a_v2',
+    voice: 'https://api.minimaxi.com/v1/get_voice',
+  },
+  beijing: {
+    tts: 'https://api-bj.minimaxi.com/v1/t2a_v2',
+    voice: 'https://api-bj.minimaxi.com/v1/get_voice',
+  },
+} as const;
 
 export const MINIMAX_TTS_ENDPOINTS = [
-  'https://api.minimaxi.com/v1/t2a_v2',
-  'https://api-bj.minimaxi.com/v1/t2a_v2',
+  MINIMAX_API_URLS.international.tts,
+  MINIMAX_API_URLS.beijing.tts,
 ] as const;
 
 export const MINIMAX_VOICE_ENDPOINTS = [
-  'https://api.minimaxi.com/v1/get_voice',
-  'https://api-bj.minimaxi.com/v1/get_voice',
+  MINIMAX_API_URLS.international.voice,
+  MINIMAX_API_URLS.beijing.voice,
 ] as const;
 
 const RETRYABLE_HTTP_STATUS = new Set([408, 409, 429, 500, 502, 503, 504]);
 const RETRYABLE_BIZ_STATUS = new Set([1000, 1001, 1002, 1039]);
 const MAX_RETRY_PER_ENDPOINT = 2;
-const VOICE_CACHE_KEY = 'tavern_multi_tts_voice_catalog_v1';
+const VOICE_CACHE_PREFIX = 'tavern_multi_tts_voice_catalog_v1';
 const VOICE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type GetVoiceResponse = {
@@ -45,6 +61,18 @@ type T2AResponse = {
 
 export function normalizeMinimaxApiKey(api_key: string): string {
   return api_key.replace(/^Bearer\s+/i, '').trim();
+}
+
+export function resolveMinimaxRegion(region: MinimaxRegion | undefined): MinimaxRegion {
+  return region === 'beijing' ? 'beijing' : 'international';
+}
+
+export function getMinimaxApiUrls(region: MinimaxRegion | undefined) {
+  return MINIMAX_API_URLS[resolveMinimaxRegion(region)];
+}
+
+export function buildVoiceCatalogCacheKey(region: MinimaxRegion, group_id: string): string {
+  return `${VOICE_CACHE_PREFIX}:${region}:${group_id.trim()}`;
 }
 
 export function buildMinimaxT2aPayload(request: MinimaxSynthesisRequest) {
@@ -133,9 +161,13 @@ function parseVoiceMeta(voice_id: string, voice_name?: string) {
   return { language, gender };
 }
 
-function readVoiceCache(): VoiceDescriptor[] | null {
+function readVoiceCache(region: MinimaxRegion, group_id: string): VoiceDescriptor[] | null {
+  const scoped_group = group_id.trim();
+  if (!scoped_group) {
+    return null;
+  }
   try {
-    const raw = localStorage.getItem(VOICE_CACHE_KEY);
+    const raw = localStorage.getItem(buildVoiceCatalogCacheKey(region, scoped_group));
     if (!raw) {
       return null;
     }
@@ -149,9 +181,13 @@ function readVoiceCache(): VoiceDescriptor[] | null {
   }
 }
 
-function writeVoiceCache(items: VoiceDescriptor[]) {
+function writeVoiceCache(region: MinimaxRegion, group_id: string, items: VoiceDescriptor[]) {
+  const scoped_group = group_id.trim();
+  if (!scoped_group) {
+    return;
+  }
   localStorage.setItem(
-    VOICE_CACHE_KEY,
+    buildVoiceCatalogCacheKey(region, scoped_group),
     JSON.stringify({
       expires_at: Date.now() + VOICE_CACHE_TTL_MS,
       items,
@@ -175,18 +211,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function isRetryableFailure(http_status: number, biz_status: number) {
+  return RETRYABLE_HTTP_STATUS.has(http_status) || RETRYABLE_BIZ_STATUS.has(biz_status);
+}
+
 export function createMinimaxAdapter(options?: { fetchImpl?: FetchLike }): TtsEngineAdapter {
   const fetch_impl = options?.fetchImpl ?? fetch;
-
-  async function requestJson(
-    url: string,
-    init: RequestInit,
-    timeout_ms: number,
-  ): Promise<{ response: Response; data: unknown }> {
-    const response = await fetchWithTimeout(fetch_impl, url, init, timeout_ms);
-    const data = await readJsonBody(response);
-    return { response, data };
-  }
 
   return {
     id: 'minimax',
@@ -214,67 +244,61 @@ export function createMinimaxAdapter(options?: { fetchImpl?: FetchLike }): TtsEn
       if (!api_key) {
         throw new TtsRequestError('请先填写 API Key', 'config');
       }
+      const region = resolveMinimaxRegion(request.region);
       if (!request.forceRefresh) {
-        const cached = readVoiceCache();
+        const cached = readVoiceCache(region, request.groupId);
         if (cached && cached.length > 0) {
           return cached;
         }
       }
 
-      let last_error: string | null = null;
-      for (const endpoint of MINIMAX_VOICE_ENDPOINTS) {
-        try {
-          const { response, data } = await requestJson(
-            endpoint,
-            {
-              method: 'POST',
-              headers: {
-                Authorization: buildMinimaxAuthHeader(api_key),
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ voice_type: 'all' }),
-              signal: request.signal,
-            },
-            request.timeoutMs,
-          );
-          const payload = data as GetVoiceResponse;
-          if (!response.ok || (payload.base_resp?.status_code ?? 0) !== 0) {
-            throw new Error(
-              payload.base_resp?.status_msg ?? response.statusText ?? 'unknown error',
-            );
-          }
-
-          const items: VoiceDescriptor[] = [];
-          const push_items = (
-            source: VoiceDescriptor['source'],
-            list: Array<{ voice_id: string; voice_name?: string; description?: string[] }> = [],
-          ) => {
-            list.forEach((item) => {
-              const meta = parseVoiceMeta(item.voice_id, item.voice_name);
-              items.push({
-                id: item.voice_id,
-                name: item.voice_name ?? item.voice_id,
-                description: item.description,
-                source,
-                language: meta.language,
-                gender: meta.gender,
-              });
-            });
-          };
-          push_items('system', payload.system_voice ?? []);
-          push_items('voice_cloning', payload.voice_cloning ?? []);
-          push_items('voice_generation', payload.voice_generation ?? []);
-          writeVoiceCache(items);
-          return items;
-        } catch (error) {
-          if (error instanceof TtsRequestError && error.code === 'cancelled') {
-            throw error;
-          }
-          last_error = error instanceof Error ? error.message : String(error);
-          logEngineWarn('minimax', 'voice catalog request failed', { endpoint });
-        }
+      const endpoint = getMinimaxApiUrls(region).voice;
+      const timed = await fetchWithTimeout(
+        fetch_impl,
+        endpoint,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: buildMinimaxAuthHeader(api_key),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ voice_type: 'all' }),
+          signal: request.signal,
+        },
+        request.timeoutMs,
+      );
+      const data = await timed.json();
+      const payload = data as GetVoiceResponse;
+      if (!timed.ok || (payload.base_resp?.status_code ?? 0) !== 0) {
+        throw new TtsRequestError(
+          payload.base_resp?.status_msg ?? timed.statusText ?? '拉取音色列表失败',
+          'http',
+          timed.status,
+        );
       }
-      throw new TtsRequestError(last_error ?? '拉取音色列表失败', 'http');
+
+      const items: VoiceDescriptor[] = [];
+      const push_items = (
+        source: VoiceDescriptor['source'],
+        list: Array<{ voice_id: string; voice_name?: string; description?: string[] }> = [],
+      ) => {
+        list.forEach((item) => {
+          const meta = parseVoiceMeta(item.voice_id, item.voice_name);
+          items.push({
+            id: item.voice_id,
+            name: item.voice_name ?? item.voice_id,
+            description: item.description,
+            source,
+            language: meta.language,
+            gender: meta.gender,
+          });
+        });
+      };
+      push_items('system', payload.system_voice ?? []);
+      push_items('voice_cloning', payload.voice_cloning ?? []);
+      push_items('voice_generation', payload.voice_generation ?? []);
+      writeVoiceCache(region, request.groupId, items);
+      return items;
     },
     async synthesize(request) {
       if (request.engine !== 'minimax') {
@@ -282,6 +306,7 @@ export function createMinimaxAdapter(options?: { fetchImpl?: FetchLike }): TtsEn
       }
       assertMinimaxRequest(request);
       const payload = buildMinimaxT2aPayload(request);
+      const endpoint = getMinimaxApiUrls(request.region).tts;
       const headers = {
         Authorization: buildMinimaxAuthHeader(request.apiKey),
         'Content-Type': 'application/json',
@@ -289,68 +314,53 @@ export function createMinimaxAdapter(options?: { fetchImpl?: FetchLike }): TtsEn
       logEngineInfo('minimax', 'synthesize', {
         model: payload.model,
         voiceId: payload.voice_setting.voice_id,
+        region: resolveMinimaxRegion(request.region),
+        groupId: request.groupId.trim(),
         text: request.text,
       });
 
       let last_error: string | null = null;
-      for (const endpoint of MINIMAX_TTS_ENDPOINTS) {
-        for (let attempt = 0; attempt <= MAX_RETRY_PER_ENDPOINT; attempt += 1) {
-          try {
-            const { response, data } = await requestJson(
-              endpoint,
-              {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(payload),
-                signal: request.signal,
-              },
-              request.timeoutMs,
-            );
-            if (!isRecord(data)) {
-              throw new TtsRequestError('MiniMax 响应结构无效', 'invalid_json');
-            }
-            const parsed = data as T2AResponse;
-            if (!response.ok || (parsed.base_resp?.status_code ?? 0) !== 0) {
-              const status_code = parsed.base_resp?.status_code ?? response.status;
-              const status_msg =
-                parsed.base_resp?.status_msg ?? response.statusText ?? 'unknown error';
-              const retryable =
-                RETRYABLE_HTTP_STATUS.has(response.status) || RETRYABLE_BIZ_STATUS.has(status_code);
-              last_error = `MiniMax 请求失败：code=${status_code}, msg=${status_msg}`;
-              if (retryable && attempt < MAX_RETRY_PER_ENDPOINT) {
-                await sleep(250 * (attempt + 1));
-                continue;
-              }
-              throw new TtsRequestError(`${last_error}（已重试）`, 'http', response.status);
-            }
-
-            const encoded_audio =
-              parsed.data?.audio ?? parsed.data?.audio_file ?? parsed.audio_file;
-            if (!encoded_audio) {
-              last_error = 'MiniMax 响应中未找到音频字段';
-              if (attempt < MAX_RETRY_PER_ENDPOINT) {
-                await sleep(250 * (attempt + 1));
-                continue;
-              }
-              throw new TtsRequestError(`${last_error}（已重试）`, 'missing_audio');
-            }
-
-            const bytes = decodeMinimaxAudioString(encoded_audio);
-            return new Blob([Uint8Array.from(bytes)], { type: 'audio/mpeg' });
-          } catch (error) {
-            if (error instanceof TtsRequestError && error.code !== 'http') {
-              throw error;
-            }
-            last_error = error instanceof Error ? error.message : String(error);
-            if (attempt < MAX_RETRY_PER_ENDPOINT) {
-              await sleep(250 * (attempt + 1));
-              continue;
-            }
-            break;
-          }
+      for (let attempt = 0; attempt <= MAX_RETRY_PER_ENDPOINT; attempt += 1) {
+        const timed = await fetchWithTimeout(
+          fetch_impl,
+          endpoint,
+          {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+            signal: request.signal,
+          },
+          request.timeoutMs,
+        );
+        const data = await timed.json();
+        if (!isRecord(data)) {
+          throw new TtsRequestError('MiniMax 响应结构无效', 'invalid_json');
         }
+        const parsed = data as T2AResponse;
+        if (!timed.ok || (parsed.base_resp?.status_code ?? 0) !== 0) {
+          const status_code = parsed.base_resp?.status_code ?? timed.status;
+          const status_msg = parsed.base_resp?.status_msg ?? timed.statusText ?? 'unknown error';
+          last_error = `MiniMax 请求失败：code=${status_code}, msg=${status_msg}`;
+          if (isRetryableFailure(timed.status, status_code) && attempt < MAX_RETRY_PER_ENDPOINT) {
+            logEngineWarn('minimax', 'retryable synthesize failure', {
+              status: timed.status,
+              attempt,
+            });
+            await sleep(250 * (attempt + 1));
+            continue;
+          }
+          throw new TtsRequestError(last_error, 'http', timed.status);
+        }
+
+        const encoded_audio = parsed.data?.audio ?? parsed.data?.audio_file ?? parsed.audio_file;
+        if (!encoded_audio) {
+          throw new TtsRequestError('MiniMax 响应中未找到音频字段', 'missing_audio');
+        }
+
+        const bytes = decodeMinimaxAudioString(encoded_audio);
+        return new Blob([Uint8Array.from(bytes)], { type: 'audio/mpeg' });
       }
-      throw new TtsRequestError(`${last_error ?? 'MiniMax 请求失败：未知错误'}（已重试）`, 'http');
+      throw new TtsRequestError(last_error ?? 'MiniMax 请求失败：未知错误', 'http');
     },
   };
 }
