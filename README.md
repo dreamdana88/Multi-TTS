@@ -63,15 +63,9 @@ mklink /D "C:\path\to\SillyTavern\public\scripts\extensions\third-party\Multi-TT
 
 - `schemaVersion`：`2`
 - `enabled` / `injectEnabled`：功能和提示词注入开关
-- MiniMax / Local-GSVI 引擎字段、角色映射和预取参数（可通过导入写入；完整面板在后续步骤）
+- MiniMax / Local-GSVI 引擎字段、角色映射和预取参数（完整面板在后续步骤里配置，不从旧脚本导入）
 
 卸载或在扩展管理里清理数据时，会删除这个命名空间。
-
-### 从旧酒馆助手脚本导入
-
-1. 在酒馆助手里打开旧 Tavern Multi-TTS 脚本变量，复制整份设置 JSON。
-2. 在新扩展面板选择「导入旧酒馆助手设置」。
-3. 导入只会写入 `extensionSettings.tavern_multi_tts`，不会改旧脚本变量。
 
 密钥会出现在 SillyTavern 扩展设置里（和官方扩展设置机制一样），但不会写入日志。
 

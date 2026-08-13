@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_EXTENSION_SETTINGS,
   EXTENSION_SETTINGS_SCHEMA_VERSION,
-  importLegacySettings,
   parseExtensionSettings,
-  summarizeImportedSettings,
 } from './extension-settings';
 
 describe('parseExtensionSettings', () => {
@@ -43,35 +41,5 @@ describe('parseExtensionSettings', () => {
     expect(parsed.speed).toBe(2);
     expect(parsed.injectDepth).toBe(0);
     expect(parsed).not.toHaveProperty('unknownField');
-  });
-});
-
-describe('importLegacySettings', () => {
-  it('imports an old script settings object', () => {
-    const imported = importLegacySettings({
-      enabled: true,
-      ttsEngine: 'minimax',
-      apiKey: 'legacy-key',
-      groupId: 'legacy-group',
-      characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'voice-a' }],
-    });
-    expect(imported.groupId).toBe('legacy-group');
-    expect(imported.characterMappings).toEqual([
-      { characterName: '爱丽丝', minimaxVoiceId: 'voice-a' },
-    ]);
-    const summary = summarizeImportedSettings(imported);
-    expect(summary).toEqual({
-      engine: 'minimax',
-      minimaxMappings: 1,
-      gsviMappings: 0,
-      injectEnabled: true,
-      hasMinimaxKey: true,
-      hasGsviToken: false,
-    });
-    expect(JSON.stringify(summary)).not.toContain('legacy-key');
-  });
-
-  it('rejects unrelated JSON', () => {
-    expect(() => importLegacySettings({ foo: 1 })).toThrow('不是可识别');
   });
 });

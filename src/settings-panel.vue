@@ -1,31 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-
-const props = defineProps<{
+defineProps<{
   displayName: string;
   version: string;
   enabled: boolean;
   injectEnabled: boolean;
   onEnabledChange: (enabled: boolean) => void;
   onInjectEnabledChange: (enabled: boolean) => void;
-  onImportFile: (text: string) => string;
 }>();
-
-const import_status = ref('');
-
-function handleImport(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) {
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => {
-    import_status.value = props.onImportFile(String(reader.result ?? ''));
-    input.value = '';
-  };
-  reader.readAsText(file);
-}
 </script>
 
 <template>
@@ -58,15 +39,6 @@ function handleImport(event: Event) {
             />
             <span>启用提示词注入</span>
           </label>
-        </div>
-        <div class="tavern-multi-tts-block">
-          <label class="tavern-multi-tts-import-label">
-            导入旧酒馆助手设置
-            <input type="file" accept="application/json,.json" @change="handleImport" />
-          </label>
-          <small class="tavern-multi-tts-version">{{
-            import_status || '选择从旧脚本导出的 JSON。未知字段会被忽略。'
-          }}</small>
         </div>
       </div>
     </div>

@@ -299,37 +299,3 @@ export function parseExtensionSettings(raw: unknown): ExtensionSettings {
       asString(source.injectTemplate, DEFAULT_INJECT_TEMPLATE) || DEFAULT_INJECT_TEMPLATE,
   };
 }
-
-export function looksLikeLegacySettings(raw: unknown): boolean {
-  if (!isRecord(raw)) {
-    return false;
-  }
-  return (
-    'ttsEngine' in raw ||
-    'characterMappings' in raw ||
-    'localGsviBaseUrl' in raw ||
-    'injectTemplate' in raw ||
-    'groupId' in raw
-  );
-}
-
-export function importLegacySettings(raw: unknown): ExtensionSettings {
-  if (isRecord(raw) && looksLikeLegacySettings(raw.settings)) {
-    return parseExtensionSettings(raw.settings);
-  }
-  if (!looksLikeLegacySettings(raw)) {
-    throw new Error('导入内容不是可识别的旧 Tavern Multi-TTS 设置');
-  }
-  return parseExtensionSettings(raw);
-}
-
-export function summarizeImportedSettings(settings: ExtensionSettings) {
-  return {
-    engine: settings.ttsEngine,
-    minimaxMappings: settings.characterMappings.filter((item) => item.characterName).length,
-    gsviMappings: settings.gsviCharacterMappings.filter((item) => item.characterName).length,
-    injectEnabled: settings.injectEnabled,
-    hasMinimaxKey: Boolean(settings.apiKey.trim()),
-    hasGsviToken: Boolean(settings.localGsviAuthToken.trim()),
-  };
-}

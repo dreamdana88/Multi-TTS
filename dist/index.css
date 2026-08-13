@@ -12,12 +12,6 @@
   opacity: 0.75;
 }
 
-.tavern-multi-tts-settings .tavern-multi-tts-import-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .tavern-multi-tts-segment {
   display: inline-flex;
   align-items: center;

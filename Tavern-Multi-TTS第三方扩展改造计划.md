@@ -5,7 +5,7 @@
 - Step 0（基线确认与保护）：已完成，记录见 `docs/step-0-baseline.md`。
 - Step 1（建立扩展最小骨架）：仓库实现、静态验证和用户实机确认完成。设置面板可显示名称、版本和启用开关。
 - Step 2（迁移纯业务模块）：仓库实现和单元测试完成。
-- Step 3（替换酒馆助手依赖）：仓库实现和单元测试完成。实机验收见交付说明。
+- Step 3（替换酒馆助手依赖）：仓库实现和单元测试完成。实机验收见交付说明。已按用户决定删除旧脚本 JSON 导入，新旧配置互不迁移。
 - 后续步骤未开始。未得到用户明确授权前，不进入 Step 4。
 
 ## 1. 背景
@@ -57,6 +57,7 @@
 - 不开发必须安装的 SillyTavern 服务端插件。
 - 不承诺真正的流式音频；首版仍以完整 WAV/音频结果播放为准。
 - 不在功能迁移完成前删除或停用旧酒馆助手脚本。
+- 不提供旧酒馆助手脚本设置到新扩展的自动导入或兼容迁移；新扩展配置由用户在新面板中手工填写。
 - 不在未经确认时提交、推送、发布 Release 或替换实际安装版本。
 
 ## 4. 总体设计
@@ -256,7 +257,6 @@ intensity  -> 缩放情绪强度
 2. 酒馆助手消息事件迁移为 SillyTavern 原生事件。
 3. 消息 DOM 定位迁移为经目标版本验证的原生方式。
 4. 提示词注入迁移为 SillyTavern 官方支持的机制。
-5. 建立旧配置到新配置的一次性导入工具或手工导入说明。
 
 验收：
 
@@ -265,7 +265,7 @@ intensity  -> 缩放情绪强度
 - 切换或卸载扩展后监听器完整清理。
 - 构建通过不等于宿主实测通过；必须在真实 SillyTavern 页面验证。
 
-完成记录：2026-08-13。设置迁到 `extensionSettings.tavern_multi_tts`（schemaVersion 2）。消息监听使用 SillyTavern 1.18.0 的 `MESSAGE_RECEIVED` / `CHARACTER_MESSAGE_RENDERED` / `MESSAGE_UPDATED` / `CHAT_CHANGED`。DOM 定位为 `#chat .mes[mesid] .mes_text`。提示词注入使用 `setExtensionPrompt`（IN_CHAT=1）。提供旧设置 JSON 导入。未开展 Step 4 完整引擎界面。
+完成记录：2026-08-13。设置迁到 `extensionSettings.tavern_multi_tts`（schemaVersion 2）。消息监听使用 SillyTavern 1.18.0 的 `MESSAGE_RECEIVED` / `CHARACTER_MESSAGE_RENDERED` / `MESSAGE_UPDATED` / `CHAT_CHANGED`。DOM 定位为 `#chat .mes[mesid] .mes_text`。提示词注入使用 `setExtensionPrompt`（IN_CHAT=1）。不导入、不兼容旧酒馆助手脚本配置，新扩展设置需手工填写。未开展 Step 4 完整引擎界面。
 
 ### Step 4：恢复 MiniMax 与 Local-GSVI 功能
 
@@ -337,7 +337,7 @@ intensity  -> 缩放情绪强度
 
 1. 完善 README、安装、升级、卸载和故障排查说明。
 2. 明确最低 SillyTavern 版本。
-3. 提供旧酒馆助手脚本迁移指南。
+3. 说明新旧扩展配置独立，旧脚本设置不迁移，需在新面板手工配置。
 4. 完成生产构建和干净安装测试。
 5. 经用户确认后再提交、推送和发布版本。
 

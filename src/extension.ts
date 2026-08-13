@@ -3,11 +3,7 @@ import { clearDefaultAudioCache } from './audio-cache';
 import { stopCurrentPlayback } from './audio-playback';
 import { createExtensionRuntime } from './extension-lifecycle';
 import { EXTENSION_DISPLAY_NAME, EXTENSION_VERSION, LOG_PREFIX } from './extension-meta';
-import {
-  importLegacySettings,
-  parseExtensionSettings,
-  summarizeImportedSettings,
-} from './extension-settings';
+import { parseExtensionSettings } from './extension-settings';
 import { createChatRuntime } from './message-tts/chat-runtime';
 import { createSillyTavernChatHost, createSillyTavernHost } from './sillytavern-context';
 import type { ExtensionSettings } from './extension-settings';
@@ -23,19 +19,6 @@ function getSettings(): ExtensionSettings {
 function getChatRuntime() {
   chat_runtime ??= createChatRuntime(createSillyTavernChatHost(getSettings));
   return chat_runtime;
-}
-
-function handleImportFile(text: string): string {
-  try {
-    const parsed = JSON.parse(text) as unknown;
-    const settings = importLegacySettings(parsed);
-    runtime?.updateSettings(settings);
-    const summary = summarizeImportedSettings(settings);
-    return `已导入：引擎 ${summary.engine}，MiniMax 映射 ${summary.minimaxMappings} 条，GSVI 映射 ${summary.gsviMappings} 条。`;
-  } catch (error) {
-    console.error(`${LOG_PREFIX} import failed`);
-    return error instanceof Error ? error.message : '导入失败';
-  }
 }
 
 function getRuntime() {
@@ -59,7 +42,6 @@ function getRuntime() {
           onInjectEnabledChange(enabled: boolean) {
             runtime?.setInjectEnabled(enabled);
           },
-          onImportFile: handleImportFile,
         });
         vue_app.mount(root);
       },
