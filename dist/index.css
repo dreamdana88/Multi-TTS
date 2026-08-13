@@ -64,6 +64,10 @@
 
 .tavern-multi-tts-settings .menu_button {
   flex: 0 0 auto;
+  width: auto;
+  min-width: max-content;
+  height: auto;
+  white-space: nowrap;
 }
 
 .tavern-multi-tts-segment {
