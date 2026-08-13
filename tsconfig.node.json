@@ -6,6 +6,8 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
     "types": ["node"]
   },
   "include": ["vite.config.ts", "vitest.config.ts", "eslint.config.mjs"]

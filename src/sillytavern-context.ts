@@ -4,7 +4,8 @@ import type { ExtensionHost } from './extension-lifecycle';
 import { findSettingsRoot } from './extension-lifecycle';
 
 type EventSourceLike = {
-  once?(event_name: string, listener: () => void): unknown;
+  on(event_name: string, listener: () => void): unknown;
+  removeListener(event_name: string, listener: () => void): unknown;
 };
 
 type SillyTavernContext = {
@@ -22,6 +23,16 @@ type SillyTavernApi = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function asEventSource(value: unknown): EventSourceLike | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  if (typeof value.on !== 'function' || typeof value.removeListener !== 'function') {
+    return undefined;
+  }
+  return value as EventSourceLike;
 }
 
 function asSillyTavernApi(value: unknown): SillyTavernApi | null {
@@ -42,9 +53,7 @@ function asContext(value: unknown): SillyTavernContext {
     throw new Error('SillyTavern 上下文缺少 saveSettingsDebounced');
   }
 
-  const event_source = isRecord(value.eventSource)
-    ? (value.eventSource as EventSourceLike)
-    : undefined;
+  const event_source = asEventSource(value.eventSource);
   const event_types = isRecord(value.eventTypes)
     ? {
         APP_READY:
@@ -88,12 +97,14 @@ export function createSillyTavernHost(): ExtensionHost {
     findSettingsRoot,
     onAppReady(listener) {
       const event_name = context.eventTypes?.APP_READY ?? 'app_ready';
-      if (typeof context.eventSource?.once === 'function') {
-        context.eventSource.once(event_name, listener);
-        return () => undefined;
+      const event_source = context.eventSource;
+      if (!event_source) {
+        throw new Error('SillyTavern eventSource 缺少 on/removeListener，无法注册 APP_READY 监听');
       }
-      listener();
-      return () => undefined;
+      event_source.on(event_name, listener);
+      return () => {
+        event_source.removeListener(event_name, listener);
+      };
     },
     onPageHide(listener) {
       const wrapped = () => listener();

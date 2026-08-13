@@ -8,12 +8,13 @@
   "scripts": {
     "build": "vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
     "lint": "eslint .",
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "test": "vitest run",
     "test:dist": "node scripts/check-dist-exports.mjs",
-    "verify": "pnpm typecheck && pnpm lint && pnpm format && pnpm test && pnpm build && pnpm test:dist"
+    "verify": "pnpm typecheck && pnpm typecheck:node && pnpm lint && pnpm format && pnpm test && pnpm build && pnpm test:dist"
   },
   "dependencies": {
     "vue": "^3.5.22"

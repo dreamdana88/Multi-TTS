@@ -94,11 +94,14 @@ export function createExtensionRuntime(host: ExtensionHost, panel: SettingsPanel
 
     pending_app_ready = true;
     stop_app_ready = host.onAppReady(() => {
-      if (!pending_app_ready) {
+      const should_mount = pending_app_ready;
+      pending_app_ready = false;
+      const stop = stop_app_ready;
+      stop_app_ready = null;
+      stop?.();
+      if (!should_mount) {
         return;
       }
-      pending_app_ready = false;
-      stop_app_ready = null;
       if (!mountIfPossible()) {
         console.error(
           `${LOG_PREFIX} 未找到扩展设置容器 (#extensions_settings2 / #extensions_settings)，无法挂载设置面板`,
