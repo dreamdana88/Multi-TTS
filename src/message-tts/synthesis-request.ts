@@ -115,6 +115,47 @@ export function buildSynthesisRequest(
   return request;
 }
 
+export function buildVoiceCatalogRequest(settings: ExtensionSettings): SynthesisRequest | null {
+  if (settings.ttsEngine === 'local_gsvi') {
+    if (!settings.localGsviBaseUrl.trim()) {
+      return null;
+    }
+    return {
+      engine: 'local_gsvi',
+      text: 'catalog',
+      baseUrl: settings.localGsviBaseUrl,
+      authToken: settings.localGsviAuthToken || undefined,
+      modelId: settings.localGsviModel.trim() || 'catalog',
+      language: settings.localGsviLanguage.trim() || 'ja',
+      emotion: settings.localGsviEmotion.trim() || 'neutral',
+      format: settings.localGsviFormat,
+      speed: settings.speed,
+      topK: settings.localGsviTopK,
+      topP: settings.localGsviTopP,
+      temperature: settings.localGsviTemperature,
+      textLang: settings.localGsviTextLang,
+      textSplitMethod: settings.localGsviTextSplitMethod,
+      batchSize: settings.localGsviBatchSize,
+      timeoutMs: settings.requestTimeoutMs,
+    };
+  }
+  if (!settings.apiKey.trim()) {
+    return null;
+  }
+  return {
+    engine: 'minimax',
+    text: 'catalog',
+    apiKey: settings.apiKey,
+    groupId: settings.groupId,
+    voiceId: settings.voiceId.trim() || settings.voiceCatalogSelectedId.trim() || 'catalog',
+    model: settings.model,
+    speed: settings.speed,
+    vol: settings.vol,
+    region: settings.minimaxRegion,
+    timeoutMs: settings.requestTimeoutMs,
+  };
+}
+
 export function buildAudioCacheKeyInput(
   settings: ExtensionSettings,
   text: string,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_EXTENSION_SETTINGS } from '../extension-settings';
 import {
   buildSynthesisRequest,
+  buildVoiceCatalogRequest,
   hasCharacterMapping,
   resolveSegmentVoice,
 } from './synthesis-request';
@@ -70,6 +71,24 @@ describe('buildSynthesisRequest', () => {
       '未知',
     );
     expect(request).toBeNull();
+  });
+
+  it('builds a catalog request without requiring a mapped character', () => {
+    expect(buildVoiceCatalogRequest(DEFAULT_EXTENSION_SETTINGS)).toBeNull();
+    expect(
+      buildVoiceCatalogRequest({
+        ...DEFAULT_EXTENSION_SETTINGS,
+        apiKey: 'k',
+        groupId: 'g',
+      }),
+    ).toMatchObject({ engine: 'minimax', groupId: 'g' });
+    expect(
+      buildVoiceCatalogRequest({
+        ...DEFAULT_EXTENSION_SETTINGS,
+        ttsEngine: 'local_gsvi',
+        localGsviBaseUrl: 'http://127.0.0.1:9880',
+      }),
+    ).toMatchObject({ engine: 'local_gsvi', baseUrl: 'http://127.0.0.1:9880' });
   });
 
   it('returns null when MiniMax required fields are missing', () => {

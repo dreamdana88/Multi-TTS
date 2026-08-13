@@ -34,13 +34,9 @@ function getRuntime() {
         vue_app = createApp(SettingsPanel, {
           displayName: EXTENSION_DISPLAY_NAME,
           version: EXTENSION_VERSION,
-          enabled: settings.enabled,
-          injectEnabled: settings.injectEnabled,
-          onEnabledChange(enabled: boolean) {
-            runtime?.setEnabled(enabled);
-          },
-          onInjectEnabledChange(enabled: boolean) {
-            runtime?.setInjectEnabled(enabled);
+          settings,
+          onSettingsChange(next: ExtensionSettings) {
+            runtime?.updateSettings(next);
           },
         });
         vue_app.mount(root);

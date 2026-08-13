@@ -2,7 +2,7 @@
 
 SillyTavern 第三方前端扩展。目标是把原来的酒馆助手脚本，迁移成可以通过 Git 仓库地址安装、启停和更新的公开插件。
 
-当前版本是 **0.1.0**：已使用 SillyTavern 1.18.0 官方扩展设置、原生消息事件和 `setExtensionPrompt` 接入聊天。助手消息里的 `<say>` 台词会变成可点击片段。完整引擎/映射界面还在后续步骤。
+当前版本是 **0.1.0**：已使用 SillyTavern 1.18.0 官方扩展设置、原生消息事件和 `setExtensionPrompt` 接入聊天。助手消息里的 `<say>` 台词会变成可点击片段。设置面板可切换 MiniMax / Local-GSVI，并维护角色映射。
 
 最低 SillyTavern 版本：**1.18.0**。
 
@@ -63,7 +63,9 @@ mklink /D "C:\path\to\SillyTavern\public\scripts\extensions\third-party\Multi-TT
 
 - `schemaVersion`：`2`
 - `enabled` / `injectEnabled`：功能和提示词注入开关
-- MiniMax / Local-GSVI 引擎字段、角色映射和预取参数（完整面板在后续步骤里配置，不从旧脚本导入）
+- MiniMax / Local-GSVI 引擎、角色映射、映射存档、预取和缓存参数
+
+在扩展设置里可切换引擎、维护映射、试听、查看缓存。不从旧酒馆助手脚本导入配置。
 
 卸载或在扩展管理里清理数据时，会删除这个命名空间。
 

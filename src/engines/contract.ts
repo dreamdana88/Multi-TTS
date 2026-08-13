@@ -9,6 +9,8 @@ export type VoiceDescriptor = {
   source?: 'system' | 'voice_cloning' | 'voice_generation' | 'gsvi_model';
   language?: string;
   gender?: string;
+  languages?: string[];
+  emotionsByLanguage?: Record<string, string[]>;
 };
 
 export type EngineHealth = {

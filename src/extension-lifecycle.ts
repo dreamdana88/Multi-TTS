@@ -161,6 +161,10 @@ export function createExtensionRuntime(
       console.info(`${LOG_PREFIX} deleted`);
       return side_effects.clearCache?.();
     },
+    updateSettings(next: ExtensionSettings) {
+      host.writeSettings(parseExtensionSettings(next));
+      side_effects.syncRuntime?.();
+    },
     setEnabled,
     setInjectEnabled,
     isActive() {

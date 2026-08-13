@@ -1,0 +1,10 @@
+import { describe, expect, it } from 'vitest';
+import { testUtterance } from './test-utterance';
+
+describe('testUtterance', () => {
+  it('uses different sample lines for MiniMax and GSVI', () => {
+    expect(testUtterance('minimax', 'zh')).toContain('Tavern Multi-TTS');
+    expect(testUtterance('local_gsvi', 'zh')).toContain('GSVI');
+    expect(testUtterance('minimax', 'en')).not.toBe(testUtterance('local_gsvi', 'en'));
+  });
+});

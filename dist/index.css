@@ -8,8 +8,62 @@
   gap: 8px;
 }
 
-.tavern-multi-tts-settings .tavern-multi-tts-version {
+.tavern-multi-tts-settings .tavern-multi-tts-toolbar,
+.tavern-multi-tts-settings .tavern-multi-tts-row,
+.tavern-multi-tts-settings .tavern-multi-tts-actions,
+.tavern-multi-tts-settings .tavern-multi-tts-grid,
+.tavern-multi-tts-settings .tavern-multi-tts-mapping {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-version,
+.tavern-multi-tts-settings .tavern-multi-tts-status,
+.tavern-multi-tts-settings .tavern-multi-tts-hint {
   opacity: 0.75;
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-status.is-busy {
+  opacity: 1;
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-engine {
+  min-width: 9em;
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-field {
+  display: flex;
+  flex: 1 1 12em;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10em, 1fr));
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-mapping .text_pole,
+.tavern-multi-tts-settings .tavern-multi-tts-actions .text_pole {
+  flex: 1 1 8em;
+  min-width: 0;
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-section {
+  margin: 10px 0;
+}
+
+.tavern-multi-tts-settings .tavern-multi-tts-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tavern-multi-tts-settings .menu_button {
+  flex: 0 0 auto;
 }
 
 .tavern-multi-tts-segment {

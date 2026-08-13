@@ -363,3 +363,7 @@ export function setCachedAudio(cache_key: string, blob: Blob): Promise<void> {
 export function clearDefaultAudioCache(): Promise<void> {
   return default_audio_cache.clear();
 }
+
+export function getDefaultAudioCacheStats(): Promise<AudioCacheStats> {
+  return default_audio_cache.stats();
+}

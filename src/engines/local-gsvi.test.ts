@@ -139,4 +139,31 @@ describe('Local-GSVI request construction', () => {
     await createLocalGsviAdapter({ fetchImpl: fetch_impl }).synthesize(sampleRequest());
     expect(fetch_impl).toHaveBeenCalledTimes(2);
   });
+
+  it('exposes GSVI model languages and emotions for the settings catalog', async () => {
+    const fetch_impl = vi.fn(async (url: string) => {
+      if (url.endsWith('/models/v2Pro')) {
+        return jsonResponse({
+          models: {
+            mori: { ja: ['neutral', 'happy'], zh: ['calm'] },
+          },
+        });
+      }
+      return new Response('missing', { status: 404 });
+    });
+    const voices = await createLocalGsviAdapter({ fetchImpl: fetch_impl }).listVoices(
+      sampleRequest(),
+    );
+    expect(voices).toEqual([
+      expect.objectContaining({
+        id: 'mori|v2Pro',
+        name: 'mori [v2Pro]',
+        languages: ['ja', 'zh'],
+        emotionsByLanguage: {
+          ja: ['neutral', 'happy'],
+          zh: ['calm'],
+        },
+      }),
+    ]);
+  });
 });

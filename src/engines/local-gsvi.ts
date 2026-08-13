@@ -298,11 +298,25 @@ export function createLocalGsviAdapter(options?: { fetchImpl?: FetchLike }): Tts
             if (!model_name || !isRecord(lang_map_raw)) {
               return;
             }
+            const languages = Object.keys(lang_map_raw)
+              .filter(Boolean)
+              .sort((left, right) => left.localeCompare(right));
+            const emotionsByLanguage: Record<string, string[]> = {};
+            languages.forEach((language) => {
+              const raw = lang_map_raw[language];
+              emotionsByLanguage[language] = Array.isArray(raw)
+                ? raw.map((item) => String(item).trim()).filter(Boolean)
+                : typeof raw === 'string'
+                  ? [raw.trim()].filter(Boolean)
+                  : [];
+            });
             items.push({
               id: `${model_name}|${version}`,
               name: `${model_name} [${version}]`,
               source: 'gsvi_model',
-              language: Object.keys(lang_map_raw).join(','),
+              language: languages.join(','),
+              languages,
+              emotionsByLanguage,
             });
           });
         } catch (error) {
