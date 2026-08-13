@@ -1,0 +1,22 @@
+{
+  "display_name": "Tavern Multi-TTS",
+  "loading_order": 50,
+  "requires": [],
+  "optional": [],
+  "dependencies": [],
+  "js": "dist/index.js",
+  "css": "dist/index.css",
+  "author": "dreamdana88",
+  "version": "0.1.0",
+  "homePage": "https://github.com/dreamdana88/Multi-TTS",
+  "auto_update": true,
+  "minimum_client_version": "1.18.0",
+  "hooks": {
+    "install": "onInstall",
+    "activate": "onActivate",
+    "enable": "onEnable",
+    "disable": "onDisable",
+    "clean": "onClean",
+    "delete": "onDelete"
+  }
+}
