@@ -4,8 +4,9 @@
 
 - Step 0（基线确认与保护）：已完成，记录见 `docs/step-0-baseline.md`。
 - Step 1（建立扩展最小骨架）：仓库实现、静态验证和用户实机确认完成。设置面板可显示名称、版本和启用开关。
-- Step 2（迁移纯业务模块）：仓库实现和单元测试完成。未接线到聊天消息，未改旧酒馆助手脚本。
-- 后续步骤未开始。未得到用户明确授权前，不进入 Step 3。
+- Step 2（迁移纯业务模块）：仓库实现和单元测试完成。
+- Step 3（替换酒馆助手依赖）：仓库实现和单元测试完成。实机验收见交付说明。
+- 后续步骤未开始。未得到用户明确授权前，不进入 Step 4。
 
 ## 1. 背景
 
@@ -263,6 +264,8 @@ intensity  -> 缩放情绪强度
 - 不重复装饰同一段台词。
 - 切换或卸载扩展后监听器完整清理。
 - 构建通过不等于宿主实测通过；必须在真实 SillyTavern 页面验证。
+
+完成记录：2026-08-13。设置迁到 `extensionSettings.tavern_multi_tts`（schemaVersion 2）。消息监听使用 SillyTavern 1.18.0 的 `MESSAGE_RECEIVED` / `CHARACTER_MESSAGE_RENDERED` / `MESSAGE_UPDATED` / `CHAT_CHANGED`。DOM 定位为 `#chat .mes[mesid] .mes_text`。提示词注入使用 `setExtensionPrompt`（IN_CHAT=1）。提供旧设置 JSON 导入。未开展 Step 4 完整引擎界面。
 
 ### Step 4：恢复 MiniMax 与 Local-GSVI 功能
 

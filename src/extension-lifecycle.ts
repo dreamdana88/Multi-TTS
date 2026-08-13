@@ -18,6 +18,9 @@ export type SettingsPanelMount = {
 export type RuntimeSideEffects = {
   stopPlayback?: () => void;
   clearCache?: () => void | Promise<void>;
+  startRuntime?: () => void;
+  stopRuntime?: () => void;
+  syncRuntime?: () => void;
 };
 
 export function createExtensionRuntime(
@@ -66,11 +69,13 @@ export function createExtensionRuntime(
       teardown({ removeSettings: false });
     });
     active = true;
+    side_effects.startRuntime?.();
     console.info(`${LOG_PREFIX} settings panel mounted`);
     return true;
   }
 
   function teardown(options: { removeSettings: boolean }) {
+    side_effects.stopRuntime?.();
     side_effects.stopPlayback?.();
     stop_app_ready?.();
     stop_app_ready = null;
@@ -124,6 +129,14 @@ export function createExtensionRuntime(
     const settings = currentSettings();
     settings.enabled = enabled;
     host.writeSettings(settings);
+    side_effects.syncRuntime?.();
+  }
+
+  function setInjectEnabled(inject_enabled: boolean) {
+    const settings = currentSettings();
+    settings.injectEnabled = inject_enabled;
+    host.writeSettings(settings);
+    side_effects.syncRuntime?.();
   }
 
   return {
@@ -148,7 +161,12 @@ export function createExtensionRuntime(
       console.info(`${LOG_PREFIX} deleted`);
       return side_effects.clearCache?.();
     },
+    updateSettings(next: ExtensionSettings) {
+      host.writeSettings(parseExtensionSettings(next));
+      side_effects.syncRuntime?.();
+    },
     setEnabled,
+    setInjectEnabled,
     isActive() {
       return active;
     },

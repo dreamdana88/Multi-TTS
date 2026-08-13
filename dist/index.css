@@ -11,3 +11,53 @@
 .tavern-multi-tts-settings .tavern-multi-tts-version {
   opacity: 0.75;
 }
+
+.tavern-multi-tts-settings .tavern-multi-tts-import-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tavern-multi-tts-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0 0.2em;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tavern-multi-tts-segment .tavern-multi-tts-indicator {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.tavern-multi-tts-segment .tavern-multi-tts-action {
+  border: 1px solid currentcolor;
+  background: transparent;
+  color: inherit;
+  border-radius: 4px;
+  font-size: 0.72em;
+  line-height: 1;
+  padding: 0.12em 0.32em;
+  cursor: pointer;
+}
+
+.tavern-multi-tts-segment.is-loading {
+  color: #d39e00;
+}
+
+.tavern-multi-tts-segment.is-ready {
+  color: #2f9e44;
+}
+
+.tavern-multi-tts-segment.is-playing {
+  color: #1c7ed6;
+  font-weight: 700;
+}
+
+.tavern-multi-tts-segment.is-error {
+  color: #e03131;
+}

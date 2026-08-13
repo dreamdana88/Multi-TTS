@@ -1,11 +1,14 @@
-import { EXTENSION_SETTINGS_KEY } from './extension-meta';
+import { EXTENSION_SETTINGS_KEY, LOG_PREFIX } from './extension-meta';
 import type { ExtensionSettings } from './extension-settings';
 import type { ExtensionHost } from './extension-lifecycle';
 import { findSettingsRoot } from './extension-lifecycle';
+import type { ChatMessageRecord, ChatRuntimeHost } from './message-tts/chat-runtime';
+
+type EventListener = (...args: unknown[]) => void;
 
 type EventSourceLike = {
-  on(event_name: string, listener: () => void): unknown;
-  removeListener(event_name: string, listener: () => void): unknown;
+  on(event_name: string, listener: EventListener): unknown;
+  removeListener(event_name: string, listener: EventListener): unknown;
 };
 
 type SillyTavernContext = {
@@ -14,7 +17,21 @@ type SillyTavernContext = {
   eventSource?: EventSourceLike;
   eventTypes?: {
     APP_READY?: string;
+    MESSAGE_RECEIVED?: string;
+    CHARACTER_MESSAGE_RENDERED?: string;
+    MESSAGE_UPDATED?: string;
+    CHAT_CHANGED?: string;
   };
+  chat?: unknown;
+  setExtensionPrompt?: (
+    key: string,
+    value: string,
+    position: number,
+    depth: number,
+    scan: boolean,
+    role: number,
+  ) => void;
+  extensionPrompts?: Record<string, unknown>;
 };
 
 type SillyTavernApi = {
@@ -54,10 +71,31 @@ function asContext(value: unknown): SillyTavernContext {
   }
 
   const event_source = asEventSource(value.eventSource);
-  const event_types = isRecord(value.eventTypes)
+  const raw_event_types = isRecord(value.eventTypes)
+    ? value.eventTypes
+    : isRecord(value.event_types)
+      ? value.event_types
+      : undefined;
+  const event_types = raw_event_types
     ? {
         APP_READY:
-          typeof value.eventTypes.APP_READY === 'string' ? value.eventTypes.APP_READY : undefined,
+          typeof raw_event_types.APP_READY === 'string' ? raw_event_types.APP_READY : undefined,
+        MESSAGE_RECEIVED:
+          typeof raw_event_types.MESSAGE_RECEIVED === 'string'
+            ? raw_event_types.MESSAGE_RECEIVED
+            : undefined,
+        CHARACTER_MESSAGE_RENDERED:
+          typeof raw_event_types.CHARACTER_MESSAGE_RENDERED === 'string'
+            ? raw_event_types.CHARACTER_MESSAGE_RENDERED
+            : undefined,
+        MESSAGE_UPDATED:
+          typeof raw_event_types.MESSAGE_UPDATED === 'string'
+            ? raw_event_types.MESSAGE_UPDATED
+            : undefined,
+        CHAT_CHANGED:
+          typeof raw_event_types.CHAT_CHANGED === 'string'
+            ? raw_event_types.CHAT_CHANGED
+            : undefined,
       }
     : undefined;
 
@@ -66,6 +104,14 @@ function asContext(value: unknown): SillyTavernContext {
     saveSettingsDebounced: value.saveSettingsDebounced as () => void,
     eventSource: event_source,
     eventTypes: event_types,
+    chat: value.chat,
+    setExtensionPrompt:
+      typeof value.setExtensionPrompt === 'function'
+        ? (value.setExtensionPrompt as SillyTavernContext['setExtensionPrompt'])
+        : undefined,
+    extensionPrompts: isRecord(value.extensionPrompts)
+      ? (value.extensionPrompts as Record<string, unknown>)
+      : undefined,
   };
 }
 
@@ -110,6 +156,68 @@ export function createSillyTavernHost(): ExtensionHost {
       const wrapped = () => listener();
       window.addEventListener('pagehide', wrapped);
       return () => window.removeEventListener('pagehide', wrapped);
+    },
+  };
+}
+
+function asChatMessage(value: unknown): ChatMessageRecord | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    mes: typeof value.mes === 'string' ? value.mes : undefined,
+    is_user: typeof value.is_user === 'boolean' ? value.is_user : undefined,
+    is_system: typeof value.is_system === 'boolean' ? value.is_system : undefined,
+  };
+}
+
+export function createSillyTavernChatHost(get_settings: () => ExtensionSettings): ChatRuntimeHost {
+  const context = getSillyTavernContext();
+  if (!context.eventSource) {
+    throw new Error('SillyTavern eventSource 不可用，无法监听消息事件');
+  }
+  const event_source = context.eventSource;
+  return {
+    getSettings: get_settings,
+    getChatMessage(message_id) {
+      if (!Array.isArray(context.chat)) {
+        return null;
+      }
+      return asChatMessage(context.chat[message_id]);
+    },
+    findMessageElement(message_id) {
+      return document.querySelector<HTMLElement>(`#chat .mes[mesid="${message_id}"]`);
+    },
+    setExtensionPrompt(key, value, position, depth, scan, role) {
+      if (!context.setExtensionPrompt) {
+        throw new Error('SillyTavern.setExtensionPrompt 不可用，无法注入提示词');
+      }
+      context.setExtensionPrompt(key, value, position, depth, scan, role);
+    },
+    deleteExtensionPrompt(key) {
+      if (context.extensionPrompts && key in context.extensionPrompts) {
+        delete context.extensionPrompts[key];
+        return;
+      }
+      context.setExtensionPrompt?.(key, '', 1, 0, false, 0);
+    },
+    eventSource: event_source,
+    eventNames: {
+      messageReceived: context.eventTypes?.MESSAGE_RECEIVED ?? 'message_received',
+      messageRendered:
+        context.eventTypes?.CHARACTER_MESSAGE_RENDERED ?? 'character_message_rendered',
+      messageUpdated: context.eventTypes?.MESSAGE_UPDATED ?? 'message_updated',
+      chatChanged: context.eventTypes?.CHAT_CHANGED ?? 'chat_id_changed',
+    },
+    warn(message) {
+      const toastr = (
+        globalThis as { toastr?: { warning?: (text: string, title?: string) => void } }
+      ).toastr;
+      if (typeof toastr?.warning === 'function') {
+        toastr.warning(message, LOG_PREFIX);
+        return;
+      }
+      console.warn(`${LOG_PREFIX} ${message}`);
     },
   };
 }
