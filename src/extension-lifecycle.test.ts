@@ -130,6 +130,19 @@ describe('createExtensionRuntime', () => {
     expect(runtime.isActive()).toBe(false);
   });
 
+  it('stops playback on disable', () => {
+    document.body.innerHTML = '<div id="extensions_settings2"></div>';
+    const { host } = createHost();
+    const panel = createPanel();
+    const stopPlayback = vi.fn();
+    const runtime = createExtensionRuntime(host, panel, { stopPlayback });
+
+    runtime.activate();
+    runtime.disable();
+
+    expect(stopPlayback).toHaveBeenCalledTimes(1);
+  });
+
   it('removes listeners and DOM on disable, and does not wipe settings', () => {
     document.body.innerHTML = '<div id="extensions_settings2"></div>';
     const { host, stored } = createHost();

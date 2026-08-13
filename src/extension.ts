@@ -1,4 +1,6 @@
 import { createApp, type App } from 'vue';
+import { clearDefaultAudioCache } from './audio-cache';
+import { stopCurrentPlayback } from './audio-playback';
 import { createExtensionRuntime } from './extension-lifecycle';
 import { EXTENSION_DISPLAY_NAME, EXTENSION_VERSION, LOG_PREFIX } from './extension-meta';
 import { createSillyTavernHost } from './sillytavern-context';
@@ -13,31 +15,38 @@ function getRuntime() {
     return runtime;
   }
 
-  runtime = createExtensionRuntime(createSillyTavernHost(), {
-    mount(root: HTMLElement, settings: ExtensionSettings) {
-      vue_app?.unmount();
-      vue_app = createApp(SettingsPanel, {
-        displayName: EXTENSION_DISPLAY_NAME,
-        version: EXTENSION_VERSION,
-        enabled: settings.enabled,
-        onEnabledChange(enabled: boolean) {
-          runtime?.setEnabled(enabled);
-        },
-      });
-      vue_app.mount(root);
+  runtime = createExtensionRuntime(
+    createSillyTavernHost(),
+    {
+      mount(root: HTMLElement, settings: ExtensionSettings) {
+        vue_app?.unmount();
+        vue_app = createApp(SettingsPanel, {
+          displayName: EXTENSION_DISPLAY_NAME,
+          version: EXTENSION_VERSION,
+          enabled: settings.enabled,
+          onEnabledChange(enabled: boolean) {
+            runtime?.setEnabled(enabled);
+          },
+        });
+        vue_app.mount(root);
+      },
+      unmount() {
+        vue_app?.unmount();
+        vue_app = null;
+      },
     },
-    unmount() {
-      vue_app?.unmount();
-      vue_app = null;
+    {
+      stopPlayback: stopCurrentPlayback,
+      clearCache: clearDefaultAudioCache,
     },
-  });
+  );
 
   return runtime;
 }
 
-function runHook(name: string, action: () => void) {
+async function runHook(name: string, action: () => void | Promise<void>) {
   try {
-    action();
+    await action();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`${LOG_PREFIX} ${name} failed: ${message}`);
@@ -45,26 +54,26 @@ function runHook(name: string, action: () => void) {
   }
 }
 
-export function onInstall() {
-  runHook('onInstall', () => getRuntime().install());
+export async function onInstall() {
+  await runHook('onInstall', () => getRuntime().install());
 }
 
-export function onActivate() {
-  runHook('onActivate', () => getRuntime().activate());
+export async function onActivate() {
+  await runHook('onActivate', () => getRuntime().activate());
 }
 
-export function onEnable() {
-  runHook('onEnable', () => getRuntime().activate());
+export async function onEnable() {
+  await runHook('onEnable', () => getRuntime().activate());
 }
 
-export function onDisable() {
-  runHook('onDisable', () => getRuntime().disable());
+export async function onDisable() {
+  await runHook('onDisable', () => getRuntime().disable());
 }
 
-export function onClean() {
-  runHook('onClean', () => getRuntime().clean());
+export async function onClean() {
+  await runHook('onClean', () => getRuntime().clean());
 }
 
-export function onDelete() {
-  runHook('onDelete', () => getRuntime().delete());
+export async function onDelete() {
+  await runHook('onDelete', () => getRuntime().delete());
 }

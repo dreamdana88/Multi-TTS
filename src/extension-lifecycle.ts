@@ -15,7 +15,16 @@ export type SettingsPanelMount = {
   unmount(): void;
 };
 
-export function createExtensionRuntime(host: ExtensionHost, panel: SettingsPanelMount) {
+export type RuntimeSideEffects = {
+  stopPlayback?: () => void;
+  clearCache?: () => void | Promise<void>;
+};
+
+export function createExtensionRuntime(
+  host: ExtensionHost,
+  panel: SettingsPanelMount,
+  side_effects: RuntimeSideEffects = {},
+) {
   let active = false;
   let pending_app_ready = false;
   let stop_app_ready: (() => void) | null = null;
@@ -62,6 +71,7 @@ export function createExtensionRuntime(host: ExtensionHost, panel: SettingsPanel
   }
 
   function teardown(options: { removeSettings: boolean }) {
+    side_effects.stopPlayback?.();
     stop_app_ready?.();
     stop_app_ready = null;
     pending_app_ready = false;
@@ -131,10 +141,12 @@ export function createExtensionRuntime(host: ExtensionHost, panel: SettingsPanel
     clean() {
       teardown({ removeSettings: true });
       console.info(`${LOG_PREFIX} settings cleaned`);
+      return side_effects.clearCache?.();
     },
     delete() {
       teardown({ removeSettings: true });
       console.info(`${LOG_PREFIX} deleted`);
+      return side_effects.clearCache?.();
     },
     setEnabled,
     isActive() {
