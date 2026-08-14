@@ -189,4 +189,45 @@ describe('createExtensionRuntime', () => {
     expect(runtime.isActive()).toBe(false);
     expect(document.getElementById(EXTENSION_ROOT_ID)).toBeNull();
   });
+
+  it('persists settings and only refreshes decorations when mapping inputs change', () => {
+    document.body.innerHTML = '<div id="extensions_settings2"></div>';
+    const { host, stored } = createHost();
+    const panel = createPanel();
+    const syncInjection = vi.fn();
+    const refreshDecorations = vi.fn();
+    const runtime = createExtensionRuntime(host, panel, {
+      syncInjection,
+      refreshDecorations,
+    });
+    runtime.activate();
+    expect(stored.value).toEqual(DEFAULT_EXTENSION_SETTINGS);
+
+    runtime.updateSettings({
+      ...DEFAULT_EXTENSION_SETTINGS,
+      apiKey: 'k',
+      speed: 1.4,
+      injectTemplate: DEFAULT_EXTENSION_SETTINGS.injectTemplate,
+    });
+    expect((stored.value as ExtensionSettings).apiKey).toBe('k');
+    expect(syncInjection).not.toHaveBeenCalled();
+    expect(refreshDecorations).not.toHaveBeenCalled();
+
+    runtime.updateSettings({
+      ...DEFAULT_EXTENSION_SETTINGS,
+      apiKey: 'k',
+      injectDepth: 5,
+    });
+    expect(syncInjection).toHaveBeenCalledTimes(1);
+    expect(refreshDecorations).not.toHaveBeenCalled();
+
+    runtime.updateSettings({
+      ...DEFAULT_EXTENSION_SETTINGS,
+      apiKey: 'k',
+      injectDepth: 5,
+      characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'v1' }],
+    });
+    expect(syncInjection).toHaveBeenCalledTimes(2);
+    expect(refreshDecorations).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { playAudioBlob } from '../audio-playback';
+import { TtsRequestError } from '../engines';
 import { DEFAULT_EXTENSION_SETTINGS } from '../extension-settings';
 import { PROMPT_INJECTION_ID } from '../prompt-injection';
 import { MESSAGE_SWIPE_ATTR, SEGMENT_CLASS, buildSegmentPlaybackKey } from './message-decoration';
@@ -7,6 +9,7 @@ import { createChatRuntime, type ChatMessageRecord, type ChatRuntimeHost } from 
 type SynthesisCall = {
   text: string;
   voiceId?: string;
+  signal?: AbortSignal;
 };
 
 const { cache_store, synthesize, playback_stop } = vi.hoisted(() => ({
@@ -15,14 +18,18 @@ const { cache_store, synthesize, playback_stop } = vi.hoisted(() => ({
   playback_stop: vi.fn(),
 }));
 
-vi.mock('../engines', () => ({
-  createTtsAdapter: () => ({
-    id: 'minimax',
-    checkHealth: vi.fn(),
-    listVoices: vi.fn(),
-    synthesize,
-  }),
-}));
+vi.mock('../engines', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../engines')>();
+  return {
+    ...actual,
+    createTtsAdapter: () => ({
+      id: 'minimax',
+      checkHealth: vi.fn(),
+      listVoices: vi.fn(),
+      synthesize,
+    }),
+  };
+});
 
 vi.mock('../audio-cache', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../audio-cache')>();
@@ -180,6 +187,7 @@ describe('createChatRuntime', () => {
     synthesize.mockReset();
     synthesize.mockImplementation(async () => new Blob(['audio']));
     playback_stop.mockClear();
+    vi.mocked(playAudioBlob).mockClear();
   });
 
   it('decorates an assistant message once and cleans listeners on stop', async () => {
@@ -510,5 +518,86 @@ describe('createChatRuntime', () => {
     expect(document.querySelector(`.mes[mesid="1"] .${SEGMENT_CLASS}`)).toBeNull();
     expect(document.querySelector(`.mes[mesid="2"] .${SEGMENT_CLASS}`)).not.toBeNull();
     expect(synthesize).not.toHaveBeenCalled();
+  });
+
+  it('syncs prompt injection without rebuilding message decorations', async () => {
+    vi.useFakeTimers();
+    mountChat(messageHtml(1, '你好', 0));
+    const { host } = createHost();
+    Object.assign(host.getSettings(), mappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+    const original = document.querySelector(`.${SEGMENT_CLASS}`);
+    expect(original).not.toBeNull();
+    runtime.syncInjection();
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBe(original);
+  });
+
+  it('discards an in-flight synthesis after disable and does not treat cancel as an error', async () => {
+    vi.useFakeTimers();
+    let finish: ((blob: Blob) => void) | undefined;
+    synthesize.mockImplementation((request) => {
+      return new Promise((resolve, reject) => {
+        request.signal?.addEventListener('abort', () => {
+          reject(new TtsRequestError('请求已取消', 'cancelled'));
+        });
+        finish = resolve;
+      });
+    });
+    mountChat(messageHtml(1, '你好', 0));
+    const { host, settings } = createHost();
+    Object.assign(settings, mappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+    expect(vi.mocked(playAudioBlob)).not.toHaveBeenCalled();
+
+    settings.enabled = false;
+    runtime.refreshDecorations();
+    finish?.(new Blob(['late']));
+    await flushTimers();
+
+    expect(vi.mocked(playAudioBlob)).not.toHaveBeenCalled();
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+    expect(document.querySelector('.is-error')).toBeNull();
+  });
+
+  it('discards an in-flight synthesis when swipe or chat changes', async () => {
+    vi.useFakeTimers();
+    synthesize.mockImplementation((request) => {
+      return new Promise((_resolve, reject) => {
+        request.signal?.addEventListener('abort', () => {
+          reject(new TtsRequestError('请求已取消', 'cancelled'));
+        });
+      });
+    });
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">第一句</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    mountChat(messageHtml(1, '第一句', 0));
+    const { host, listeners } = createHost({}, chat);
+    Object.assign(host.getSettings(), mappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+
+    applySwipe(chat, 1, 1, '<say char="爱丽丝">第二句</say>', '第二句');
+    emit(listeners, 'message_swiped', 1);
+    await flushTimers();
+    expect(vi.mocked(playAudioBlob)).not.toHaveBeenCalled();
+
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+    emit(listeners, 'chat_id_changed');
+    await flushTimers();
+    expect(vi.mocked(playAudioBlob)).not.toHaveBeenCalled();
   });
 });

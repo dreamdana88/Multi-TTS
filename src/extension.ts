@@ -51,7 +51,8 @@ function getRuntime() {
       clearCache: clearDefaultAudioCache,
       startRuntime: () => getChatRuntime().start(),
       stopRuntime: () => chat_runtime?.stop(),
-      syncRuntime: () => chat_runtime?.syncFromSettings(),
+      syncInjection: () => chat_runtime?.syncInjection(),
+      refreshDecorations: () => chat_runtime?.refreshDecorations(),
     },
   );
 

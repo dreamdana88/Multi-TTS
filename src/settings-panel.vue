@@ -626,7 +626,7 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
             <button class="menu_button" type="button" @click="addMapping">添加角色</button>
           </div>
           <p v-if="duplicated_mapping_names.length > 0" class="tavern-multi-tts-hint">
-            重复角色名：{{ duplicated_mapping_names.join('、') }}，以后一条为准。
+            重复角色名：{{ duplicated_mapping_names.join('、') }}，最后一条完整映射生效。
           </p>
         </details>
 

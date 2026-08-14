@@ -1,5 +1,6 @@
 import { EXTENSION_ROOT_ID, LOG_PREFIX } from './extension-meta';
 import { parseExtensionSettings, type ExtensionSettings } from './extension-settings';
+import { planSettingsSync } from './settings-sync';
 
 export type ExtensionHost = {
   readRawSettings(): unknown;
@@ -20,7 +21,8 @@ export type RuntimeSideEffects = {
   clearCache?: () => void | Promise<void>;
   startRuntime?: () => void;
   stopRuntime?: () => void;
-  syncRuntime?: () => void;
+  syncInjection?: () => void;
+  refreshDecorations?: () => void;
 };
 
 export function createExtensionRuntime(
@@ -129,14 +131,14 @@ export function createExtensionRuntime(
     const settings = currentSettings();
     settings.enabled = enabled;
     host.writeSettings(settings);
-    side_effects.syncRuntime?.();
+    side_effects.refreshDecorations?.();
   }
 
   function setInjectEnabled(inject_enabled: boolean) {
     const settings = currentSettings();
     settings.injectEnabled = inject_enabled;
     host.writeSettings(settings);
-    side_effects.syncRuntime?.();
+    side_effects.syncInjection?.();
   }
 
   return {
@@ -162,8 +164,15 @@ export function createExtensionRuntime(
       return side_effects.clearCache?.();
     },
     updateSettings(next: ExtensionSettings) {
+      const previous = currentSettings();
       host.writeSettings(parseExtensionSettings(next));
-      side_effects.syncRuntime?.();
+      const plan = planSettingsSync(previous, currentSettings());
+      if (plan.syncInjection) {
+        side_effects.syncInjection?.();
+      }
+      if (plan.refreshDecorations) {
+        side_effects.refreshDecorations?.();
+      }
     },
     setEnabled,
     setInjectEnabled,

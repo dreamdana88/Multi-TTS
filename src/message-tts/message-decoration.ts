@@ -34,12 +34,17 @@ export function parseSegmentPlaybackKey(key: string): {
 
 export type SegmentState = 'idle' | 'loading' | 'ready' | 'playing' | 'error';
 
+export type EnsureAudioResult = {
+  blob?: Blob | null;
+  cancelled?: boolean;
+};
+
 export type DecoratedSegmentHandlers = {
   ensureAudio: (
     segment: SaySegment,
     display_text: string,
     tts_text: string,
-  ) => Promise<Blob | null>;
+  ) => Promise<EnsureAudioResult>;
   downloadAudio: (blob: Blob, message_id: number, index: number) => void;
 };
 
@@ -177,13 +182,16 @@ function createSegmentElement(
   const ensure = async () => {
     setSegmentState(root, 'loading');
     try {
-      const blob = await handlers.ensureAudio(segment, display_text, tts_text);
-      if (!blob) {
+      const result = await handlers.ensureAudio(segment, display_text, tts_text);
+      if (result.cancelled) {
+        return null;
+      }
+      if (!result.blob) {
         setSegmentState(root, 'error');
         return null;
       }
       setSegmentState(root, 'ready');
-      return blob;
+      return result.blob;
     } catch {
       setSegmentState(root, 'error');
       return null;

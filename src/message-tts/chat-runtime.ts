@@ -5,7 +5,7 @@ import {
   stopCurrentPlayback,
   type PlaybackHandle,
 } from '../audio-playback';
-import { createTtsAdapter } from '../engines';
+import { createTtsAdapter, isTtsRequestError } from '../engines';
 import type { ExtensionSettings } from '../extension-settings';
 import { LOG_PREFIX } from '../extension-meta';
 import {
@@ -22,6 +22,7 @@ import {
   isMessageDecorated,
   parseSegmentPlaybackKey,
   removeMessageDecorations,
+  type EnsureAudioResult,
 } from './message-decoration';
 import {
   buildAudioCacheKeyInput,
@@ -59,13 +60,21 @@ export type ChatRuntimeHost = PromptInjectionHost & {
 
 const MAX_DOM_ATTEMPTS = 15;
 
+type InflightRequest = {
+  token: number;
+  message_id: number;
+  swipe_id: number;
+  controller: AbortController;
+};
+
 export function createChatRuntime(host: ChatRuntimeHost) {
   const playbacks = new Map<string, PlaybackHandle>();
-  const loading = new Set<string>();
+  const inflight = new Map<string, InflightRequest>();
   const memory_blobs = new Map<string, Blob>();
   const stops: Array<() => void> = [];
   let started = false;
   let conflict_warned = false;
+  let request_token = 0;
 
   function settings() {
     return host.getSettings();
@@ -79,28 +88,109 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     host.warn?.('检测到旧酒馆助手 Multi-TTS 仍在装饰消息。请只启用其中一个，避免重复生成。');
   }
 
-  async function ensureAudio(segment_text: string, tts_text: string, segment_char?: string) {
-    const current = settings();
-    const request = buildSynthesisRequest(current, tts_text, segment_char);
-    if (!request) {
-      return null;
+  function isCancelledError(error: unknown) {
+    return isTtsRequestError(error) && error.code === 'cancelled';
+  }
+
+  function isCurrentInflight(key: string, token: number) {
+    return inflight.get(key)?.token === token;
+  }
+
+  function abortInflight(predicate: (item: InflightRequest) => boolean) {
+    for (const [key, item] of inflight) {
+      if (predicate(item)) {
+        item.controller.abort();
+        inflight.delete(key);
+      }
     }
-    const cache_input = buildAudioCacheKeyInput(current, tts_text, segment_char);
-    const cache_key = await createAudioCacheKey(cache_input);
-    const memory = memory_blobs.get(cache_key);
-    if (memory) {
-      return memory;
+  }
+
+  function abortAllInflight() {
+    abortInflight(() => true);
+  }
+
+  function abortMessageInflight(message_id: number, swipe_id?: number) {
+    abortInflight(
+      (item) =>
+        item.message_id === message_id && (swipe_id === undefined || item.swipe_id !== swipe_id),
+    );
+  }
+
+  function beginInflight(key: string, message_id: number, swipe_id: number) {
+    const existing = inflight.get(key);
+    existing?.controller.abort();
+    request_token += 1;
+    const current: InflightRequest = {
+      token: request_token,
+      message_id,
+      swipe_id,
+      controller: new AbortController(),
+    };
+    inflight.set(key, current);
+    return current;
+  }
+
+  function finishInflight(key: string, token: number) {
+    if (isCurrentInflight(key, token)) {
+      inflight.delete(key);
     }
-    const cached = await getCachedAudio(cache_key);
-    if (cached) {
-      memory_blobs.set(cache_key, cached);
-      return cached;
+  }
+
+  async function ensureAudio(
+    key: string,
+    message_id: number,
+    swipe_id: number,
+    tts_text: string,
+    segment_char?: string,
+  ): Promise<EnsureAudioResult> {
+    const started = beginInflight(key, message_id, swipe_id);
+    try {
+      const current = settings();
+      const request = buildSynthesisRequest(current, tts_text, segment_char);
+      if (!request) {
+        return { blob: null };
+      }
+      request.signal = started.controller.signal;
+      const cache_input = buildAudioCacheKeyInput(current, tts_text, segment_char);
+      const cache_key = await createAudioCacheKey(cache_input);
+      if (!isCurrentInflight(key, started.token) || started.controller.signal.aborted) {
+        return { cancelled: true };
+      }
+      const memory = memory_blobs.get(cache_key);
+      if (memory) {
+        return { blob: memory };
+      }
+      const cached = await getCachedAudio(cache_key);
+      if (!isCurrentInflight(key, started.token) || started.controller.signal.aborted) {
+        return { cancelled: true };
+      }
+      if (cached) {
+        memory_blobs.set(cache_key, cached);
+        return { blob: cached };
+      }
+      const adapter = createTtsAdapter(request.engine);
+      const blob = await adapter.synthesize(request);
+      if (blob) {
+        await setCachedAudio(cache_key, blob);
+        memory_blobs.set(cache_key, blob);
+      }
+      if (!isCurrentInflight(key, started.token) || started.controller.signal.aborted) {
+        return { cancelled: true };
+      }
+      return { blob };
+    } catch (error) {
+      if (
+        isCancelledError(error) ||
+        !isCurrentInflight(key, started.token) ||
+        started.controller.signal.aborted
+      ) {
+        return { cancelled: true };
+      }
+      console.error(`${LOG_PREFIX} synthesize failed`);
+      return { blob: null };
+    } finally {
+      finishInflight(key, started.token);
     }
-    const adapter = createTtsAdapter(request.engine);
-    const blob = await adapter.synthesize(request);
-    await setCachedAudio(cache_key, blob);
-    memory_blobs.set(cache_key, blob);
-    return blob;
   }
 
   function resolveSwipeId(message: ChatMessageRecord, root: HTMLElement | null) {
@@ -115,6 +205,16 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     for (const [key, handle] of playbacks) {
       const parsed = parseSegmentPlaybackKey(key);
       if (parsed && parsed.message_id === message_id && parsed.swipe_id !== swipe_id) {
+        handle.stop();
+        playbacks.delete(key);
+      }
+    }
+  }
+
+  function stopPlaybacksForMessage(message_id: number) {
+    for (const [key, handle] of playbacks) {
+      const parsed = parseSegmentPlaybackKey(key);
+      if (parsed && parsed.message_id === message_id) {
         handle.stop();
         playbacks.delete(key);
       }
@@ -185,18 +285,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
       {
         ensureAudio: async (segment, _display, tts_text) => {
           const key = `${message_id}:${swipe_id}:${segment.index}`;
-          if (loading.has(key)) {
-            return null;
-          }
-          loading.add(key);
-          try {
-            return await ensureAudio(segment.text, tts_text, segment.char);
-          } catch {
-            console.error(`${LOG_PREFIX} synthesize failed`);
-            return null;
-          } finally {
-            loading.delete(key);
-          }
+          return await ensureAudio(key, message_id, swipe_id, tts_text, segment.char);
         },
         downloadAudio(blob, id, index) {
           downloadBlob(blob, buildAudioFilename(id, index));
@@ -209,8 +298,9 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     prepared.forEach((segment, index) => {
       if (should_prefetch(index) && segment.ttsText) {
         prefetch_tasks.push(async () => {
+          const key = `${message_id}:${swipe_id}:${segment.index}`;
           try {
-            await ensureAudio(segment.text, segment.ttsText, segment.char);
+            await ensureAudio(key, message_id, swipe_id, segment.ttsText, segment.char);
           } catch {
             // prefetch failures stay on the segment when the user clicks
           }
@@ -230,11 +320,29 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     window.setTimeout(() => decorate(message_id), 0);
   }
 
+  function handleMessageUpdated(...args: unknown[]) {
+    const message_id = Number(args[0]);
+    if (!Number.isFinite(message_id)) {
+      return;
+    }
+    abortMessageInflight(message_id);
+    const root = host.findMessageElement(message_id) ?? findMessageElement(message_id);
+    if (root) {
+      removeMessageDecorations(root);
+    }
+    stopPlaybacksForMessage(message_id);
+    window.setTimeout(() => decorate(message_id), 0);
+  }
+
   function handleSwipeEvent(...args: unknown[]) {
     const message_id = Number(args[0]);
     if (!Number.isFinite(message_id)) {
       return;
     }
+    const root = host.findMessageElement(message_id) ?? findMessageElement(message_id);
+    const message = host.getChatMessage(message_id);
+    const swipe_id = message ? resolveSwipeId(message, root) : 0;
+    abortMessageInflight(message_id, swipe_id);
     window.setTimeout(() => decorate(message_id, { skipPrefetch: true }), 0);
   }
 
@@ -260,12 +368,16 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     applyPromptInjection(host, settings());
     listen(host.eventNames.messageReceived, handleMessageEvent);
     listen(host.eventNames.messageRendered, handleMessageEvent);
-    listen(host.eventNames.messageUpdated, handleMessageEvent);
+    listen(host.eventNames.messageUpdated, handleMessageUpdated);
     listen(host.eventNames.messageSwiped, handleSwipeEvent);
     listen(host.eventNames.moreMessagesLoaded, () => {
       decorateVisibleMessages({ skipPrefetch: true });
     });
     listen(host.eventNames.chatChanged, () => {
+      abortAllInflight();
+      playbacks.forEach((handle) => handle.stop());
+      playbacks.clear();
+      stopCurrentPlayback();
       applyPromptInjection(host, settings());
       decorateVisibleMessages({ skipPrefetch: true });
     });
@@ -275,9 +387,9 @@ export function createChatRuntime(host: ChatRuntimeHost) {
 
   function stop() {
     stops.splice(0).forEach((stop) => stop());
+    abortAllInflight();
     playbacks.forEach((handle) => handle.stop());
     playbacks.clear();
-    loading.clear();
     memory_blobs.clear();
     stopCurrentPlayback();
     clearPromptInjection(host);
@@ -287,20 +399,28 @@ export function createChatRuntime(host: ChatRuntimeHost) {
   }
 
   function clearDecorationsAndPlayback() {
+    abortAllInflight();
     playbacks.forEach((handle) => handle.stop());
     playbacks.clear();
-    loading.clear();
     stopCurrentPlayback();
     removeMessageDecorations(document);
   }
 
-  function syncFromSettings() {
+  function syncInjection() {
     applyPromptInjection(host, settings());
+  }
+
+  function refreshDecorations() {
     clearDecorationsAndPlayback();
     if (settings().enabled) {
       decorateVisibleMessages({ skipPrefetch: true });
     }
   }
 
-  return { start, stop, syncFromSettings, decorate };
+  function syncFromSettings() {
+    syncInjection();
+    refreshDecorations();
+  }
+
+  return { start, stop, syncFromSettings, syncInjection, refreshDecorations, decorate };
 }

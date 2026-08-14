@@ -30,7 +30,7 @@ describe('message decoration', () => {
   it('wraps matching text once and ignores a second decorate', () => {
     const root = createMessage(1, '旁白 你好 结束');
     const handlers = {
-      ensureAudio: vi.fn(async () => new Blob(['x'])),
+      ensureAudio: vi.fn(async () => ({ blob: new Blob(['x']) })),
       downloadAudio: vi.fn(),
     };
     const playbacks = new Map();
@@ -60,7 +60,7 @@ describe('message decoration', () => {
       root,
       2,
       [{ index: 0, text: '你好', displayText: '你好', ttsText: '你好' }],
-      { ensureAudio: vi.fn(async () => null), downloadAudio: vi.fn() },
+      { ensureAudio: vi.fn(async () => ({ blob: null })), downloadAudio: vi.fn() },
       new Map(),
     );
     expect(root.querySelector(`.${FALLBACK_CLASS}`)).not.toBeNull();
@@ -85,7 +85,7 @@ describe('message decoration', () => {
       root,
       5,
       [{ index: 0, text: '第一句', displayText: '第一句', ttsText: '第一句' }],
-      { ensureAudio: vi.fn(async () => null), downloadAudio: vi.fn() },
+      { ensureAudio: vi.fn(async () => ({ blob: null })), downloadAudio: vi.fn() },
       playbacks,
       0,
     );
@@ -97,7 +97,7 @@ describe('message decoration', () => {
       root,
       5,
       [{ index: 0, text: '第二句', displayText: '第二句', ttsText: '第二句' }],
-      { ensureAudio: vi.fn(async () => null), downloadAudio: vi.fn() },
+      { ensureAudio: vi.fn(async () => ({ blob: null })), downloadAudio: vi.fn() },
       playbacks,
       1,
     );
@@ -114,11 +114,26 @@ describe('message decoration', () => {
       root,
       3,
       [{ index: 0, text: '你好', displayText: '你好', ttsText: '你好' }],
-      { ensureAudio: vi.fn(async () => null), downloadAudio: vi.fn() },
+      { ensureAudio: vi.fn(async () => ({ blob: null })), downloadAudio: vi.fn() },
       new Map(),
     );
     removeMessageDecorations(root);
     expect(root.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
     expect(isMessageDecorated(root)).toBe(false);
+  });
+
+  it('does not mark a cancelled ensure as an error', async () => {
+    const root = createMessage(6, '你好');
+    decorateMessageElement(
+      root,
+      6,
+      [{ index: 0, text: '你好', displayText: '你好', ttsText: '你好' }],
+      { ensureAudio: vi.fn(async () => ({ cancelled: true })), downloadAudio: vi.fn() },
+      new Map(),
+    );
+    root.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(root.querySelector(`.${SEGMENT_CLASS}`)?.classList.contains('is-error')).toBe(false);
   });
 });
