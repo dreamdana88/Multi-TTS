@@ -54,6 +54,7 @@ export type AudioCacheKeyInput = {
     temperature: number;
     textLang: string;
     textSplitMethod: string;
+    batchSize: number;
   };
 };
 
@@ -114,6 +115,7 @@ export async function createAudioCacheKey(input: AudioCacheKeyInput): Promise<st
           temperature: input.localGsvi?.temperature,
           textLang: input.localGsvi?.textLang ?? '',
           textSplitMethod: input.localGsvi?.textSplitMethod ?? '',
+          batchSize: input.localGsvi?.batchSize,
         };
 
   const raw = JSON.stringify(scoped);

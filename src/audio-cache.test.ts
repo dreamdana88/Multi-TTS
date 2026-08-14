@@ -32,7 +32,7 @@ function sampleKeyInput(
   };
 }
 
-function gsviKeyInput(origin: string) {
+function gsviKeyInput(origin: string, batch_size = 1) {
   return {
     text: '你好',
     engine: 'local_gsvi' as const,
@@ -51,6 +51,7 @@ function gsviKeyInput(origin: string) {
       temperature: 0.7,
       textLang: '日语',
       textSplitMethod: '按标点符号切',
+      batchSize: batch_size,
     },
   };
 }
@@ -82,6 +83,12 @@ describe('createAudioCacheKey', () => {
     const local = await createAudioCacheKey(gsviKeyInput('http://127.0.0.1:9880'));
     const other = await createAudioCacheKey(gsviKeyInput('http://192.168.1.8:9880'));
     expect(local).not.toBe(other);
+  });
+
+  it('changes when Local-GSVI batch size changes', async () => {
+    const first = await createAudioCacheKey(gsviKeyInput('http://127.0.0.1:9880', 1));
+    const second = await createAudioCacheKey(gsviKeyInput('http://127.0.0.1:9880', 4));
+    expect(first).not.toBe(second);
   });
 });
 

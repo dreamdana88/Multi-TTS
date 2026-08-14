@@ -424,4 +424,91 @@ describe('createChatRuntime', () => {
     await flushTimers();
     expect(synthesize).toHaveBeenCalledTimes(1);
   });
+
+  it('clears decorations and playback when the extension is disabled', async () => {
+    vi.useFakeTimers();
+    mountChat(messageHtml(1, '你好', 0));
+    const { host, settings } = createHost();
+    Object.assign(settings, mappedSettings(), { prefetchMode: 'auto_all' });
+    runtime = createChatRuntime(host);
+    runtime.start();
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).not.toBeNull();
+
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+    const synthesize_calls = synthesize.mock.calls.length;
+    settings.enabled = false;
+    runtime.syncFromSettings();
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+    expect(playback_stop).toHaveBeenCalled();
+    expect(synthesize).toHaveBeenCalledTimes(synthesize_calls);
+  });
+
+  it('re-decorates visible messages after mappings are added, changed, or removed', async () => {
+    vi.useFakeTimers();
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">你好</say><say char="鲍勃">嗨</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    mountChat(messageHtml(1, '你好嗨', 0));
+    const { host, settings } = createHost({}, chat);
+    Object.assign(settings, mappedSettings(), { prefetchMode: 'auto_all' });
+    runtime = createChatRuntime(host);
+    runtime.start();
+    expect(
+      Array.from(document.querySelectorAll('.tavern-multi-tts-text'), (node) => node.textContent),
+    ).toEqual(['你好']);
+
+    settings.characterMappings = [
+      { characterName: '爱丽丝', minimaxVoiceId: 'mapped-voice' },
+      { characterName: '鲍勃', minimaxVoiceId: 'bob-voice' },
+    ];
+    runtime.syncFromSettings();
+    expect(
+      Array.from(document.querySelectorAll('.tavern-multi-tts-text'), (node) => node.textContent),
+    ).toEqual(['你好', '嗨']);
+
+    settings.characterMappings = [{ characterName: '鲍勃', minimaxVoiceId: 'bob-voice' }];
+    runtime.syncFromSettings();
+    expect(
+      Array.from(document.querySelectorAll('.tavern-multi-tts-text'), (node) => node.textContent),
+    ).toEqual(['嗨']);
+
+    settings.characterMappings = [];
+    runtime.syncFromSettings();
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+    expect(synthesize).not.toHaveBeenCalled();
+  });
+
+  it('refreshes visible messages after a mapping preset is loaded', async () => {
+    vi.useFakeTimers();
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">你好</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+      2: {
+        mes: '<say char="鲍勃">历史</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    mountChat(`${messageHtml(2, '历史', 0)}${messageHtml(1, '你好', 0)}`);
+    const { host, settings } = createHost({}, chat);
+    Object.assign(settings, mappedSettings(), { prefetchMode: 'auto_all' });
+    runtime = createChatRuntime(host);
+    runtime.start();
+    expect(document.querySelector(`.mes[mesid="1"] .${SEGMENT_CLASS}`)).not.toBeNull();
+    expect(document.querySelector(`.mes[mesid="2"] .${SEGMENT_CLASS}`)).toBeNull();
+
+    settings.characterMappings = [{ characterName: '鲍勃', minimaxVoiceId: 'bob-voice' }];
+    runtime.syncFromSettings();
+    expect(document.querySelector(`.mes[mesid="1"] .${SEGMENT_CLASS}`)).toBeNull();
+    expect(document.querySelector(`.mes[mesid="2"] .${SEGMENT_CLASS}`)).not.toBeNull();
+    expect(synthesize).not.toHaveBeenCalled();
+  });
 });

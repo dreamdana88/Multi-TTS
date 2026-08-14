@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { getDefaultAudioCacheStats, clearDefaultAudioCache } from './audio-cache';
 import { playAudioBlob } from './audio-playback';
-import { createTtsAdapter, isTtsRequestError, type VoiceDescriptor } from './engines';
+import { createTtsAdapter, isTtsRequestError } from './engines';
 import {
   DEFAULT_EXTENSION_SETTINGS,
   TTS_MODELS,
@@ -22,6 +22,7 @@ import {
   GSVI_TEXT_LANG_OPTIONS,
   testUtterance,
 } from './settings-panel/test-utterance';
+import { createDualEngineCatalogs, setEngineCatalogVoices } from './settings-panel/catalog-state';
 import {
   filterVoiceCatalog,
   formatCacheSize,
@@ -41,28 +42,21 @@ const props = defineProps<{
 const draft = reactive<ExtensionSettings>(parseExtensionSettings(props.settings));
 const status = ref('');
 const busy = ref(false);
-const voices = ref<VoiceDescriptor[]>([]);
-const voice_search = ref('');
-const voice_language = ref('all');
-const voice_gender = ref('all');
-const voice_source = ref('all');
+const catalogs = reactive(createDualEngineCatalogs());
 const mapping_preset_name = ref('');
 const selected_mapping_preset = ref('');
 const cache_count = ref(0);
 const cache_bytes = ref(0);
 
 const is_minimax = computed(() => draft.ttsEngine === 'minimax');
+const minimax_voices = computed(() => catalogs.minimax.voices);
+const gsvi_voices = computed(() => catalogs.local_gsvi.voices);
 const filtered_voices = computed(() =>
-  filterVoiceCatalog(voices.value, {
-    search: voice_search.value,
-    language: voice_language.value,
-    gender: voice_gender.value,
-    source: voice_source.value,
-  }),
+  filterVoiceCatalog(catalogs.minimax.voices, catalogs.minimax.filter),
 );
-const language_options = computed(() => uniqueVoiceLanguages(voices.value));
+const language_options = computed(() => uniqueVoiceLanguages(catalogs.minimax.voices));
 const selected_gsvi_model = computed(() =>
-  voices.value.find((item) => item.id === draft.localGsviModel),
+  catalogs.local_gsvi.voices.find((item) => item.id === draft.localGsviModel),
 );
 const gsvi_language_options = computed(() => gsviLanguages(selected_gsvi_model.value));
 const gsvi_emotion_options = computed(() =>
@@ -150,8 +144,10 @@ async function loadCatalog(force = false) {
       if (request.engine === 'minimax') {
         request.forceRefresh = force;
       }
-      voices.value = await createTtsAdapter(draft.ttsEngine).listVoices(request);
-      setStatus(`已加载 ${voices.value.length} 个${is_minimax.value ? '音色' : '模型'}`);
+      const engine = draft.ttsEngine;
+      const listed = await createTtsAdapter(engine).listVoices(request);
+      setEngineCatalogVoices(catalogs, engine, listed);
+      setStatus(`已加载 ${listed.length} 个${engine === 'minimax' ? '音色' : '模型'}`);
     },
     '正在拉取列表…',
     '拉取列表失败',
@@ -304,7 +300,7 @@ function resetSettings() {
     return;
   }
   Object.assign(draft, parseExtensionSettings(DEFAULT_EXTENSION_SETTINGS));
-  voices.value = [];
+  Object.assign(catalogs, createDualEngineCatalogs());
   setStatus('已恢复默认设置');
 }
 
@@ -316,12 +312,12 @@ function onGsviModelChange() {
 }
 
 function gsviRowLanguages(model_id: string) {
-  return gsviLanguages(voices.value.find((item) => item.id === model_id));
+  return gsviLanguages(catalogs.local_gsvi.voices.find((item) => item.id === model_id));
 }
 
 function gsviRowEmotions(model_id: string, language: string) {
   return gsviEmotions(
-    voices.value.find((item) => item.id === model_id),
+    catalogs.local_gsvi.voices.find((item) => item.id === model_id),
     language,
   );
 }
@@ -390,27 +386,27 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
               刷新音色
             </button>
           </div>
-          <template v-if="voices.length > 0">
+          <template v-if="minimax_voices.length > 0">
             <div class="tavern-multi-tts-grid">
               <input
-                v-model="voice_search"
+                v-model="catalogs.minimax.filter.search"
                 class="text_pole"
                 type="search"
                 placeholder="搜索音色"
               />
-              <select v-model="voice_language" class="text_pole">
+              <select v-model="catalogs.minimax.filter.language" class="text_pole">
                 <option value="all">全部语言</option>
                 <option v-for="item in language_options" :key="item" :value="item">
                   {{ item }}
                 </option>
               </select>
-              <select v-model="voice_gender" class="text_pole">
+              <select v-model="catalogs.minimax.filter.gender" class="text_pole">
                 <option value="all">全部性别</option>
                 <option value="Female">Female</option>
                 <option value="Male">Male</option>
                 <option value="Unknown">Unknown</option>
               </select>
-              <select v-model="voice_source" class="text_pole">
+              <select v-model="catalogs.minimax.filter.source" class="text_pole">
                 <option value="all">全部来源</option>
                 <option value="system">system</option>
                 <option value="voice_cloning">voice_cloning</option>
@@ -468,8 +464,8 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
             <label class="tavern-multi-tts-field">
               默认模型
               <select v-model="draft.localGsviModel" class="text_pole" @change="onGsviModelChange">
-                <option value="">{{ voices.length > 0 ? '请选择' : '先拉取模型' }}</option>
-                <option v-for="item in voices" :key="item.id" :value="item.id">
+                <option value="">{{ gsvi_voices.length > 0 ? '请选择' : '先拉取模型' }}</option>
+                <option v-for="item in gsvi_voices" :key="item.id" :value="item.id">
                   {{ item.name }}
                 </option>
               </select>
@@ -556,7 +552,7 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                 placeholder="Voice ID"
               />
               <select
-                v-if="voices.length > 0"
+                v-if="minimax_voices.length > 0"
                 class="text_pole"
                 :value="mapping.minimaxVoiceId"
                 @change="mapping.minimaxVoiceId = ($event.target as HTMLSelectElement).value"
@@ -590,8 +586,8 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                 placeholder="角色名"
               />
               <select v-model="mapping.gsviVoiceId" class="text_pole">
-                <option value="">{{ voices.length > 0 ? '模型' : '先拉取模型' }}</option>
-                <option v-for="item in voices" :key="item.id" :value="item.id">
+                <option value="">{{ gsvi_voices.length > 0 ? '模型' : '先拉取模型' }}</option>
+                <option v-for="item in gsvi_voices" :key="item.id" :value="item.id">
                   {{ item.name }}
                 </option>
               </select>

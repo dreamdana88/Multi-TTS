@@ -286,10 +286,19 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     console.info(`${LOG_PREFIX} chat runtime stopped`);
   }
 
+  function clearDecorationsAndPlayback() {
+    playbacks.forEach((handle) => handle.stop());
+    playbacks.clear();
+    loading.clear();
+    stopCurrentPlayback();
+    removeMessageDecorations(document);
+  }
+
   function syncFromSettings() {
     applyPromptInjection(host, settings());
+    clearDecorationsAndPlayback();
     if (settings().enabled) {
-      decorateVisibleMessages();
+      decorateVisibleMessages({ skipPrefetch: true });
     }
   }
 

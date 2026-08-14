@@ -14,6 +14,35 @@ export type ResolvedVoice = {
   gsviEmotion?: string;
 };
 
+function lastMatching<T>(items: T[], matches: (item: T) => boolean): T | undefined {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const item = items[index];
+    if (item && matches(item)) {
+      return item;
+    }
+  }
+  return undefined;
+}
+
+function isCompleteMinimaxMapping(
+  item: ExtensionSettings['characterMappings'][number],
+  character: string,
+) {
+  return item.characterName.trim() === character && Boolean(item.minimaxVoiceId.trim());
+}
+
+function isCompleteGsviMapping(
+  item: ExtensionSettings['gsviCharacterMappings'][number],
+  character: string,
+) {
+  return (
+    item.characterName.trim() === character &&
+    Boolean(item.gsviVoiceId.trim()) &&
+    Boolean(item.gsviLanguage.trim()) &&
+    Boolean(item.gsviEmotion.trim())
+  );
+}
+
 export function hasCharacterMapping(
   settings: ExtensionSettings,
   segment_char: string | undefined,
@@ -22,11 +51,16 @@ export function hasCharacterMapping(
   if (!character) {
     return true;
   }
-  const mappings =
-    settings.ttsEngine === 'local_gsvi'
-      ? settings.gsviCharacterMappings
-      : settings.characterMappings;
-  return mappings.some((item) => item.characterName.trim() === character);
+  if (settings.ttsEngine === 'local_gsvi') {
+    return Boolean(
+      lastMatching(settings.gsviCharacterMappings, (item) =>
+        isCompleteGsviMapping(item, character),
+      ),
+    );
+  }
+  return Boolean(
+    lastMatching(settings.characterMappings, (item) => isCompleteMinimaxMapping(item, character)),
+  );
 }
 
 export function resolveSegmentVoice(
@@ -35,8 +69,8 @@ export function resolveSegmentVoice(
 ): ResolvedVoice {
   const character = segment_char?.trim() ?? '';
   if (settings.ttsEngine === 'local_gsvi') {
-    const mapping = settings.gsviCharacterMappings.find(
-      (item) => item.characterName.trim() === character,
+    const mapping = lastMatching(settings.gsviCharacterMappings, (item) =>
+      isCompleteGsviMapping(item, character),
     );
     return {
       engine: 'local_gsvi',
@@ -46,8 +80,8 @@ export function resolveSegmentVoice(
     };
   }
 
-  const mapping = settings.characterMappings.find(
-    (item) => item.characterName.trim() === character,
+  const mapping = lastMatching(settings.characterMappings, (item) =>
+    isCompleteMinimaxMapping(item, character),
   );
   return {
     engine: 'minimax',
@@ -181,6 +215,7 @@ export function buildAudioCacheKeyInput(
         temperature: settings.localGsviTemperature,
         textLang: settings.localGsviTextLang,
         textSplitMethod: settings.localGsviTextSplitMethod,
+        batchSize: settings.localGsviBatchSize,
       },
     };
   }
