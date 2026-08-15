@@ -221,6 +221,27 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     }
   }
 
+  function domMatchesSwipe(message: ChatMessageRecord, root: HTMLElement, swipe_id: number) {
+    if (typeof message.swipe_id !== 'number' || !Number.isFinite(message.swipe_id)) {
+      return true;
+    }
+    const raw_dom = root.getAttribute('swipeid');
+    if (raw_dom === null || raw_dom === '') {
+      return true;
+    }
+    const from_dom = Number(raw_dom);
+    return Number.isFinite(from_dom) && from_dom === swipe_id && from_dom === message.swipe_id;
+  }
+
+  function applySwipeSwitch(message_id: number, swipe_id: number) {
+    abortMessageInflight(message_id, swipe_id);
+    stopPlaybacksForOtherSwipes(message_id, swipe_id);
+    const root = host.findMessageElement(message_id) ?? findMessageElement(message_id);
+    if (root) {
+      removeMessageDecorations(root);
+    }
+  }
+
   function decorate(
     message_id: number,
     options: { attempt?: number; skipPrefetch?: boolean } = {},
@@ -238,11 +259,14 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     const say_segments = extractSaySegments(raw).filter((segment) =>
       hasCharacterMapping(current, segment.char),
     );
+    const root = host.findMessageElement(message_id) ?? findMessageElement(message_id);
     if (say_segments.length === 0) {
+      if (root) {
+        removeMessageDecorations(root);
+      }
       return;
     }
 
-    const root = host.findMessageElement(message_id) ?? findMessageElement(message_id);
     if (!root) {
       if (attempt < MAX_DOM_ATTEMPTS) {
         window.setTimeout(() => decorate(message_id, { ...options, attempt: attempt + 1 }), 120);
@@ -250,6 +274,12 @@ export function createChatRuntime(host: ChatRuntimeHost) {
       return;
     }
     const swipe_id = resolveSwipeId(message, root);
+    if (!domMatchesSwipe(message, root, swipe_id)) {
+      if (attempt < MAX_DOM_ATTEMPTS) {
+        window.setTimeout(() => decorate(message_id, { ...options, attempt: attempt + 1 }), 120);
+      }
+      return;
+    }
     if (isMessageDecorated(root, swipe_id)) {
       return;
     }
@@ -342,7 +372,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     const root = host.findMessageElement(message_id) ?? findMessageElement(message_id);
     const message = host.getChatMessage(message_id);
     const swipe_id = message ? resolveSwipeId(message, root) : 0;
-    abortMessageInflight(message_id, swipe_id);
+    applySwipeSwitch(message_id, swipe_id);
     window.setTimeout(() => decorate(message_id, { skipPrefetch: true }), 0);
   }
 

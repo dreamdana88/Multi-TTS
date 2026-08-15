@@ -131,6 +131,7 @@ export function createExtensionRuntime(
     const settings = currentSettings();
     settings.enabled = enabled;
     host.writeSettings(settings);
+    side_effects.syncInjection?.();
     side_effects.refreshDecorations?.();
   }
 

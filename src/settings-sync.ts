@@ -11,6 +11,7 @@ function sameJson(left: unknown, right: unknown) {
 
 function injectionInputsChanged(previous: ExtensionSettings, next: ExtensionSettings) {
   return (
+    previous.enabled !== next.enabled ||
     previous.injectEnabled !== next.injectEnabled ||
     previous.injectDepth !== next.injectDepth ||
     previous.injectRole !== next.injectRole ||

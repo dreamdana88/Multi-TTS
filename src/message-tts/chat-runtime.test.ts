@@ -345,6 +345,7 @@ describe('createChatRuntime', () => {
 
     applySwipe(chat, 1, 1, '<say char="爱丽丝">第二句</say>', '第二句');
     emit(listeners, 'message_swiped', 1);
+    expect(playback_stop).toHaveBeenCalledTimes(1);
     await flushTimers();
     expect(playback_stop).toHaveBeenCalledTimes(1);
     expect(segmentKeys()).toEqual([buildSegmentPlaybackKey(1, 1, 0)]);
@@ -599,5 +600,107 @@ describe('createChatRuntime', () => {
     emit(listeners, 'chat_id_changed');
     await flushTimers();
     expect(vi.mocked(playAudioBlob)).not.toHaveBeenCalled();
+  });
+
+  it('clears and restores the extension prompt when the master switch changes', async () => {
+    vi.useFakeTimers();
+    mountChat(messageHtml(1, '你好', 0));
+    const { host, prompts, settings } = createHost();
+    Object.assign(settings, mappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+    expect(prompts.has(PROMPT_INJECTION_ID)).toBe(true);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).not.toBeNull();
+
+    settings.enabled = false;
+    runtime.syncFromSettings();
+    expect(prompts.has(PROMPT_INJECTION_ID)).toBe(false);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+
+    settings.enabled = true;
+    runtime.syncFromSettings();
+    expect(prompts.has(PROMPT_INJECTION_ID)).toBe(true);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).not.toBeNull();
+    expect(synthesize).not.toHaveBeenCalled();
+  });
+
+  it('does not inject when injectEnabled is off even if the master switch is on', async () => {
+    vi.useFakeTimers();
+    mountChat(messageHtml(1, '你好', 0));
+    const { host, prompts, settings } = createHost();
+    Object.assign(settings, mappedSettings(), { injectEnabled: false });
+    runtime = createChatRuntime(host);
+    runtime.start();
+    expect(prompts.has(PROMPT_INJECTION_ID)).toBe(false);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).not.toBeNull();
+  });
+
+  it('stops old swipe playback immediately even when the new swipe has no speakable lines', async () => {
+    vi.useFakeTimers();
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">第一句</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    mountChat(messageHtml(1, '第一句', 0));
+    const { host, listeners, settings } = createHost({}, chat);
+    Object.assign(settings, mappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+    expect(playback_stop).not.toHaveBeenCalled();
+
+    applySwipe(chat, 1, 1, '只有旁白', '只有旁白');
+    emit(listeners, 'message_swiped', 1);
+    expect(playback_stop).toHaveBeenCalledTimes(1);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+    await flushTimers();
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+
+    applySwipe(chat, 1, 2, '<say char="路人">走开</say>', '走开');
+    emit(listeners, 'message_swiped', 1);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+
+    applySwipe(chat, 1, 3, '完全没有标签', '完全没有标签');
+    emit(listeners, 'message_swiped', 1);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+  });
+
+  it('does not decorate stale swipe text as the new swipe while the DOM is behind', async () => {
+    vi.useFakeTimers();
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">第一句</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    mountChat(messageHtml(1, '第一句', 0));
+    const { host, listeners, settings } = createHost({}, chat);
+    Object.assign(settings, mappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+
+    chat[1] = {
+      ...chat[1],
+      mes: '<say char="爱丽丝">第二句</say>',
+      swipe_id: 1,
+    };
+    emit(listeners, 'message_swiped', 1);
+    expect(playback_stop).toHaveBeenCalledTimes(1);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+    await flushTimers();
+    expect(segmentKeys()).toEqual([]);
+
+    applySwipe(chat, 1, 1, '<say char="爱丽丝">第二句</say>', '第二句');
+    emit(listeners, 'message_swiped', 1);
+    await flushTimers();
+    expect(segmentKeys()).toEqual([buildSegmentPlaybackKey(1, 1, 0)]);
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)?.textContent).toContain('第二句');
   });
 });

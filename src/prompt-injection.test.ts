@@ -59,6 +59,16 @@ describe('prompt injection', () => {
 
     applyPromptInjection(host, { ...settings, injectEnabled: false });
     expect(host.deleteExtensionPrompt).toHaveBeenCalledWith(PROMPT_INJECTION_ID);
+
+    host.deleteExtensionPrompt.mockClear();
+    applyPromptInjection(host, { ...settings, enabled: false, injectEnabled: true });
+    expect(host.setExtensionPrompt).toHaveBeenCalledTimes(1);
+    expect(host.deleteExtensionPrompt).toHaveBeenCalledWith(PROMPT_INJECTION_ID);
+
+    host.deleteExtensionPrompt.mockClear();
+    applyPromptInjection(host, { ...settings, enabled: true, injectEnabled: false });
+    expect(host.deleteExtensionPrompt).toHaveBeenCalledWith(PROMPT_INJECTION_ID);
+
     clearPromptInjection(host);
     expect(host.deleteExtensionPrompt).toHaveBeenCalledTimes(2);
   });

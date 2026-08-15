@@ -229,5 +229,15 @@ describe('createExtensionRuntime', () => {
     });
     expect(syncInjection).toHaveBeenCalledTimes(2);
     expect(refreshDecorations).toHaveBeenCalledTimes(1);
+
+    runtime.updateSettings({
+      ...DEFAULT_EXTENSION_SETTINGS,
+      apiKey: 'k',
+      injectDepth: 5,
+      characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'v1' }],
+      enabled: false,
+    });
+    expect(syncInjection).toHaveBeenCalledTimes(3);
+    expect(refreshDecorations).toHaveBeenCalledTimes(2);
   });
 });

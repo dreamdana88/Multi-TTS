@@ -19,6 +19,7 @@ describe('planSettingsSync', () => {
         localGsviBatchSize: 4,
         prefetchMode: 'manual',
         testLanguage: 'en',
+        vol: 2,
       }),
     ).toEqual({
       syncInjection: false,
@@ -41,7 +42,11 @@ describe('planSettingsSync', () => {
   it('refreshes decorations when enablement, engine, or mappings change', () => {
     const previous = DEFAULT_EXTENSION_SETTINGS;
     expect(planSettingsSync(previous, { ...previous, enabled: false })).toEqual({
-      syncInjection: false,
+      syncInjection: true,
+      refreshDecorations: true,
+    });
+    expect(planSettingsSync({ ...previous, enabled: false }, previous)).toEqual({
+      syncInjection: true,
       refreshDecorations: true,
     });
     expect(planSettingsSync(previous, { ...previous, ttsEngine: 'local_gsvi' })).toEqual({
