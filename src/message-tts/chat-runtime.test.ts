@@ -12,10 +12,11 @@ type SynthesisCall = {
   signal?: AbortSignal;
 };
 
-const { cache_store, synthesize, playback_stop } = vi.hoisted(() => ({
+const { cache_store, synthesize, playback_stop, download_blob } = vi.hoisted(() => ({
   cache_store: new Map<string, Blob>(),
   synthesize: vi.fn<(request: SynthesisCall) => Promise<Blob>>(async () => new Blob(['audio'])),
   playback_stop: vi.fn(),
+  download_blob: vi.fn(),
 }));
 
 vi.mock('../engines', async (importOriginal) => {
@@ -56,6 +57,7 @@ vi.mock('../audio-playback', async (importOriginal) => {
       restart: vi.fn(async () => undefined),
       getState: () => 'playing' as const,
     })),
+    downloadBlob: download_blob,
   };
 });
 
@@ -67,6 +69,19 @@ function mappedSettings() {
     groupId: 'g',
     voiceId: 'default-voice',
     characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'mapped-voice' }],
+  };
+}
+
+function indexTtsMappedSettings() {
+  return {
+    ttsEngine: 'index_tts' as const,
+    indexTtsBaseUrl: 'http://127.0.0.1:7860',
+    indexTtsVoiceId: 'default-voice',
+    indexTtsLanguage: 'ZH' as const,
+    indexTtsCharacterMappings: [
+      { characterName: '爱丽丝', indexTtsVoiceId: 'alice-voice', indexTtsLanguage: 'ZH' as const },
+      { characterName: '鲍勃', indexTtsVoiceId: 'bob-voice', indexTtsLanguage: 'EN' as const },
+    ],
   };
 }
 
@@ -187,6 +202,7 @@ describe('createChatRuntime', () => {
     synthesize.mockReset();
     synthesize.mockImplementation(async () => new Blob(['audio']));
     playback_stop.mockClear();
+    download_blob.mockClear();
     vi.mocked(playAudioBlob).mockClear();
   });
 
@@ -702,5 +718,121 @@ describe('createChatRuntime', () => {
     await flushTimers();
     expect(segmentKeys()).toEqual([buildSegmentPlaybackKey(1, 1, 0)]);
     expect(document.querySelector(`.${SEGMENT_CLASS}`)?.textContent).toContain('第二句');
+  });
+
+  it('keeps IndexTTS A/B blobs bound to their own play and download controls when they finish out of order', async () => {
+    vi.useFakeTimers();
+    const blob_a = new Blob(['audio-A'], { type: 'audio/wav' });
+    const blob_b = new Blob(['audio-B'], { type: 'audio/wav' });
+    const pending = new Map<string, (blob: Blob) => void>();
+    synthesize.mockImplementation((request) => {
+      return new Promise((resolve) => {
+        pending.set(String(request.voiceId), resolve);
+      });
+    });
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">你好</say><say char="鲍勃">嗨</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    mountChat(messageHtml(1, '你好嗨', 0));
+    const { host, settings } = createHost({}, chat);
+    Object.assign(settings, indexTtsMappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+
+    const segments = Array.from(document.querySelectorAll<HTMLElement>(`.${SEGMENT_CLASS}`));
+    const alice = segments.find((node) => node.textContent?.includes('你好'));
+    const bob = segments.find((node) => node.textContent?.includes('嗨'));
+    expect(alice?.dataset.tavernMultiTtsKey).toBe(buildSegmentPlaybackKey(1, 0, 0));
+    expect(bob?.dataset.tavernMultiTtsKey).toBe(buildSegmentPlaybackKey(1, 0, 1));
+
+    alice?.click();
+    bob?.click();
+    await flushTimers();
+    expect(pending.has('alice-voice')).toBe(true);
+    expect(pending.has('bob-voice')).toBe(true);
+
+    pending.get('bob-voice')?.(blob_b);
+    await flushTimers();
+    pending.get('alice-voice')?.(blob_a);
+    await flushTimers();
+
+    expect(vi.mocked(playAudioBlob).mock.calls.map((call) => call[0])).toEqual([blob_b, blob_a]);
+
+    alice?.querySelector<HTMLElement>('.tavern-multi-tts-action')?.click();
+    bob?.querySelector<HTMLElement>('.tavern-multi-tts-action')?.click();
+    await flushTimers();
+    expect(download_blob.mock.calls.map((call) => call[0])).toEqual([blob_a, blob_b]);
+  });
+
+  it('does not write a late IndexTTS swipe result back onto the old control', async () => {
+    vi.useFakeTimers();
+    let finish: ((blob: Blob) => void) | undefined;
+    synthesize.mockImplementation(() => {
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    });
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">第一句</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    mountChat(messageHtml(1, '第一句', 0));
+    const { host, listeners, settings } = createHost({}, chat);
+    Object.assign(settings, indexTtsMappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+
+    const first_key = document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.dataset
+      .tavernMultiTtsKey;
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+
+    applySwipe(chat, 1, 1, '<say char="爱丽丝">第二句</say>', '第二句');
+    emit(listeners, 'message_swiped', 1);
+    await flushTimers();
+    finish?.(new Blob(['stale-index-tts'], { type: 'audio/wav' }));
+    await flushTimers();
+
+    expect(vi.mocked(playAudioBlob)).not.toHaveBeenCalled();
+    expect(document.querySelector(`[data-tavern-multi-tts-key="${first_key}"]`)).toBeNull();
+    expect(document.querySelector('.is-ready')).toBeNull();
+    expect(document.querySelector('.is-error')).toBeNull();
+    expect(segmentKeys()).toEqual([buildSegmentPlaybackKey(1, 1, 0)]);
+  });
+
+  it('does not treat a cancelled IndexTTS request as a late playable result', async () => {
+    vi.useFakeTimers();
+    let finish: ((blob: Blob) => void) | undefined;
+    synthesize.mockImplementation((request) => {
+      return new Promise((resolve, reject) => {
+        request.signal?.addEventListener('abort', () => {
+          reject(new TtsRequestError('请求已取消', 'cancelled'));
+        });
+        finish = resolve;
+      });
+    });
+    mountChat(messageHtml(1, '你好', 0));
+    const { host, settings } = createHost();
+    Object.assign(settings, indexTtsMappedSettings());
+    runtime = createChatRuntime(host);
+    runtime.start();
+
+    document.querySelector<HTMLElement>(`.${SEGMENT_CLASS}`)?.click();
+    await flushTimers();
+    settings.enabled = false;
+    runtime.refreshDecorations();
+    finish?.(new Blob(['late-index-tts'], { type: 'audio/wav' }));
+    await flushTimers();
+
+    expect(vi.mocked(playAudioBlob)).not.toHaveBeenCalled();
+    expect(document.querySelector(`.${SEGMENT_CLASS}`)).toBeNull();
+    expect(document.querySelector('.is-error')).toBeNull();
   });
 });

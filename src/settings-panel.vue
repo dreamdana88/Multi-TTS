@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { getDefaultAudioCacheStats, clearDefaultAudioCache } from './audio-cache';
 import { playAudioBlob } from './audio-playback';
-import { createTtsAdapter, isTtsRequestError } from './engines';
+import { INDEX_TTS_LANGUAGES, createTtsAdapter, isTtsRequestError } from './engines';
 import {
   DEFAULT_EXTENSION_SETTINGS,
   TTS_MODELS,
@@ -22,7 +22,7 @@ import {
   GSVI_TEXT_LANG_OPTIONS,
   testUtterance,
 } from './settings-panel/test-utterance';
-import { createDualEngineCatalogs, setEngineCatalogVoices } from './settings-panel/catalog-state';
+import { createEngineCatalogs, setEngineCatalogVoices } from './settings-panel/catalog-state';
 import {
   filterVoiceCatalog,
   formatCacheSize,
@@ -42,15 +42,18 @@ const props = defineProps<{
 const draft = reactive<ExtensionSettings>(parseExtensionSettings(props.settings));
 const status = ref('');
 const busy = ref(false);
-const catalogs = reactive(createDualEngineCatalogs());
+const catalogs = reactive(createEngineCatalogs());
 const mapping_preset_name = ref('');
 const selected_mapping_preset = ref('');
 const cache_count = ref(0);
 const cache_bytes = ref(0);
 
 const is_minimax = computed(() => draft.ttsEngine === 'minimax');
+const is_gsvi = computed(() => draft.ttsEngine === 'local_gsvi');
+const is_index_tts = computed(() => draft.ttsEngine === 'index_tts');
 const minimax_voices = computed(() => catalogs.minimax.voices);
 const gsvi_voices = computed(() => catalogs.local_gsvi.voices);
+const index_tts_voices = computed(() => catalogs.index_tts.voices);
 const filtered_voices = computed(() =>
   filterVoiceCatalog(catalogs.minimax.voices, catalogs.minimax.filter),
 );
@@ -62,18 +65,43 @@ const gsvi_language_options = computed(() => gsviLanguages(selected_gsvi_model.v
 const gsvi_emotion_options = computed(() =>
   gsviEmotions(selected_gsvi_model.value, draft.localGsviLanguage),
 );
-const mapping_presets = computed(() =>
-  is_minimax.value
-    ? sortPresets(draft.characterMappingPresets)
-    : sortPresets(draft.gsviCharacterMappingPresets),
-);
+const mapping_count = computed(() => {
+  if (is_index_tts.value) {
+    return draft.indexTtsCharacterMappings.length;
+  }
+  if (is_gsvi.value) {
+    return draft.gsviCharacterMappings.length;
+  }
+  return draft.characterMappings.length;
+});
+const mapping_presets = computed(() => {
+  if (is_index_tts.value) {
+    return sortPresets(draft.indexTtsCharacterMappingPresets);
+  }
+  if (is_gsvi.value) {
+    return sortPresets(draft.gsviCharacterMappingPresets);
+  }
+  return sortPresets(draft.characterMappingPresets);
+});
 const duplicated_mapping_names = computed(() =>
   duplicateNames(
-    (is_minimax.value ? draft.characterMappings : draft.gsviCharacterMappings).map(
-      (item) => item.characterName,
-    ),
+    (is_index_tts.value
+      ? draft.indexTtsCharacterMappings
+      : is_gsvi.value
+        ? draft.gsviCharacterMappings
+        : draft.characterMappings
+    ).map((item) => item.characterName),
   ),
 );
+const test_voice_label = computed(() => {
+  if (is_minimax.value) {
+    return '测试默认音色（消耗额度）';
+  }
+  if (is_gsvi.value) {
+    return '测试默认模型';
+  }
+  return '测试默认音色';
+});
 const cache_size_text = computed(() => formatCacheSize(cache_bytes.value));
 
 watch(
@@ -118,6 +146,33 @@ function completeGsviMappings() {
     );
 }
 
+function completeIndexTtsMappings() {
+  return draft.indexTtsCharacterMappings
+    .map((item) => ({
+      characterName: item.characterName.trim(),
+      indexTtsVoiceId: item.indexTtsVoiceId.trim(),
+      indexTtsLanguage: item.indexTtsLanguage,
+    }))
+    .filter((item) => item.characterName && item.indexTtsVoiceId && item.indexTtsLanguage);
+}
+
+function catalogMissingMessage() {
+  if (draft.ttsEngine === 'minimax') {
+    return '请先填写 API Key';
+  }
+  if (draft.ttsEngine === 'local_gsvi') {
+    return '请先填写 Local-GSVI 服务地址';
+  }
+  return '请先填写 IndexTTS 服务地址';
+}
+
+function catalogLoadedMessage(count: number) {
+  if (draft.ttsEngine === 'local_gsvi') {
+    return `已加载 ${count} 个模型`;
+  }
+  return `已加载 ${count} 个音色`;
+}
+
 async function withBusy(action: () => Promise<void>, pending: string, failed: string) {
   if (busy.value) {
     return;
@@ -138,7 +193,7 @@ async function loadCatalog(force = false) {
     async () => {
       const request = buildVoiceCatalogRequest(draft);
       if (!request) {
-        setStatus(is_minimax.value ? '请先填写 API Key' : '请先填写 Local-GSVI 服务地址');
+        setStatus(catalogMissingMessage());
         return;
       }
       if (request.engine === 'minimax') {
@@ -147,7 +202,7 @@ async function loadCatalog(force = false) {
       const engine = draft.ttsEngine;
       const listed = await createTtsAdapter(engine).listVoices(request);
       setEngineCatalogVoices(catalogs, engine, listed);
-      setStatus(`已加载 ${listed.length} 个${engine === 'minimax' ? '音色' : '模型'}`);
+      setStatus(catalogLoadedMessage(listed.length));
     },
     '正在拉取列表…',
     '拉取列表失败',
@@ -164,11 +219,19 @@ function addMapping() {
     draft.characterMappings.push({ characterName: '', minimaxVoiceId: '' });
     return;
   }
-  draft.gsviCharacterMappings.push({
+  if (is_gsvi.value) {
+    draft.gsviCharacterMappings.push({
+      characterName: '',
+      gsviVoiceId: '',
+      gsviLanguage: '',
+      gsviEmotion: '',
+    });
+    return;
+  }
+  draft.indexTtsCharacterMappings.push({
     characterName: '',
-    gsviVoiceId: '',
-    gsviLanguage: '',
-    gsviEmotion: '',
+    indexTtsVoiceId: '',
+    indexTtsLanguage: draft.indexTtsLanguage,
   });
 }
 
@@ -177,7 +240,11 @@ function removeMapping(index: number) {
     draft.characterMappings.splice(index, 1);
     return;
   }
-  draft.gsviCharacterMappings.splice(index, 1);
+  if (is_gsvi.value) {
+    draft.gsviCharacterMappings.splice(index, 1);
+    return;
+  }
+  draft.indexTtsCharacterMappings.splice(index, 1);
 }
 
 function savePreset() {
@@ -188,16 +255,26 @@ function savePreset() {
   }
   const result = is_minimax.value
     ? saveNamedPreset(draft.characterMappingPresets, name, completeMinimaxMappings(), exists)
-    : saveNamedPreset(draft.gsviCharacterMappingPresets, name, completeGsviMappings(), exists);
+    : is_gsvi.value
+      ? saveNamedPreset(draft.gsviCharacterMappingPresets, name, completeGsviMappings(), exists)
+      : saveNamedPreset(
+          draft.indexTtsCharacterMappingPresets,
+          name,
+          completeIndexTtsMappings(),
+          exists,
+        );
   if ('error' in result) {
     setStatus(result.error);
     return;
   }
   if (is_minimax.value) {
     draft.characterMappingPresets = result.presets as ExtensionSettings['characterMappingPresets'];
-  } else {
+  } else if (is_gsvi.value) {
     draft.gsviCharacterMappingPresets =
       result.presets as ExtensionSettings['gsviCharacterMappingPresets'];
+  } else {
+    draft.indexTtsCharacterMappingPresets =
+      result.presets as ExtensionSettings['indexTtsCharacterMappingPresets'];
   }
   selected_mapping_preset.value = name.trim();
   setStatus(result.message);
@@ -206,21 +283,28 @@ function savePreset() {
 function loadPreset() {
   const result = is_minimax.value
     ? loadNamedPreset(draft.characterMappingPresets, selected_mapping_preset.value)
-    : loadNamedPreset(draft.gsviCharacterMappingPresets, selected_mapping_preset.value);
+    : is_gsvi.value
+      ? loadNamedPreset(draft.gsviCharacterMappingPresets, selected_mapping_preset.value)
+      : loadNamedPreset(draft.indexTtsCharacterMappingPresets, selected_mapping_preset.value);
   if ('error' in result) {
     setStatus(result.error);
     return;
   }
   const has_current = is_minimax.value
     ? completeMinimaxMappings().length > 0
-    : completeGsviMappings().length > 0;
+    : is_gsvi.value
+      ? completeGsviMappings().length > 0
+      : completeIndexTtsMappings().length > 0;
   if (has_current && !window.confirm('读取存档会覆盖当前映射，确定继续吗？')) {
     return;
   }
   if (is_minimax.value) {
     draft.characterMappings = result.mappings as ExtensionSettings['characterMappings'];
-  } else {
+  } else if (is_gsvi.value) {
     draft.gsviCharacterMappings = result.mappings as ExtensionSettings['gsviCharacterMappings'];
+  } else {
+    draft.indexTtsCharacterMappings =
+      result.mappings as ExtensionSettings['indexTtsCharacterMappings'];
   }
   setStatus(`已读取存档：${selected_mapping_preset.value}`);
 }
@@ -231,19 +315,40 @@ function deletePreset() {
   }
   const result = is_minimax.value
     ? deleteNamedPreset(draft.characterMappingPresets, selected_mapping_preset.value)
-    : deleteNamedPreset(draft.gsviCharacterMappingPresets, selected_mapping_preset.value);
+    : is_gsvi.value
+      ? deleteNamedPreset(draft.gsviCharacterMappingPresets, selected_mapping_preset.value)
+      : deleteNamedPreset(draft.indexTtsCharacterMappingPresets, selected_mapping_preset.value);
   if ('error' in result) {
     setStatus(result.error);
     return;
   }
   if (is_minimax.value) {
     draft.characterMappingPresets = result.presets as ExtensionSettings['characterMappingPresets'];
-  } else {
+  } else if (is_gsvi.value) {
     draft.gsviCharacterMappingPresets =
       result.presets as ExtensionSettings['gsviCharacterMappingPresets'];
+  } else {
+    draft.indexTtsCharacterMappingPresets =
+      result.presets as ExtensionSettings['indexTtsCharacterMappingPresets'];
   }
   selected_mapping_preset.value = '';
   setStatus(result.message);
+}
+
+async function checkIndexTtsConnection() {
+  await withBusy(
+    async () => {
+      const request = buildVoiceCatalogRequest(draft);
+      if (!request || request.engine !== 'index_tts') {
+        setStatus('请先填写 IndexTTS 服务地址');
+        return;
+      }
+      const health = await createTtsAdapter('index_tts').checkHealth(request);
+      setStatus(health.message);
+    },
+    '正在检查 IndexTTS 连接…',
+    '检查 IndexTTS 连接失败',
+  );
 }
 
 async function testVoice(char?: string) {
@@ -300,7 +405,7 @@ function resetSettings() {
     return;
   }
   Object.assign(draft, parseExtensionSettings(DEFAULT_EXTENSION_SETTINGS));
-  Object.assign(catalogs, createDualEngineCatalogs());
+  Object.assign(catalogs, createEngineCatalogs());
   setStatus('已恢复默认设置');
 }
 
@@ -348,6 +453,7 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
           <select v-model="draft.ttsEngine" class="text_pole tavern-multi-tts-engine">
             <option value="minimax">MiniMax</option>
             <option value="local_gsvi">Local-GSVI</option>
+            <option value="index_tts">IndexTTS-2.5</option>
           </select>
         </div>
 
@@ -445,7 +551,65 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
           </div>
         </template>
 
-        <template v-else>
+        <template v-else-if="is_index_tts">
+          <label class="tavern-multi-tts-field">
+            服务地址
+            <input
+              v-model="draft.indexTtsBaseUrl"
+              class="text_pole"
+              type="url"
+              placeholder="http://127.0.0.1:7860"
+            />
+          </label>
+          <div class="tavern-multi-tts-actions">
+            <button
+              class="menu_button"
+              type="button"
+              :disabled="busy"
+              @click="checkIndexTtsConnection"
+            >
+              检查连接
+            </button>
+            <button class="menu_button" type="button" :disabled="busy" @click="loadCatalog(false)">
+              拉取音色
+            </button>
+            <button class="menu_button" type="button" :disabled="busy" @click="loadCatalog(true)">
+              刷新音色
+            </button>
+          </div>
+          <div class="tavern-multi-tts-grid">
+            <label class="tavern-multi-tts-field">
+              默认音色
+              <select v-model="draft.indexTtsVoiceId" class="text_pole">
+                <option value="">
+                  {{ index_tts_voices.length > 0 ? '请选择音色预设' : '先拉取音色预设' }}
+                </option>
+                <option
+                  v-if="
+                    draft.indexTtsVoiceId &&
+                    !index_tts_voices.some((item) => item.id === draft.indexTtsVoiceId)
+                  "
+                  :value="draft.indexTtsVoiceId"
+                >
+                  {{ draft.indexTtsVoiceId }}
+                </option>
+                <option v-for="item in index_tts_voices" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+            </label>
+            <label class="tavern-multi-tts-field">
+              默认语言
+              <select v-model="draft.indexTtsLanguage" class="text_pole">
+                <option v-for="item in INDEX_TTS_LANGUAGES" :key="item" :value="item">
+                  {{ item }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </template>
+
+        <template v-else-if="is_gsvi">
           <label class="tavern-multi-tts-field">
             服务地址
             <input
@@ -496,10 +660,7 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
         </template>
 
         <details class="tavern-multi-tts-section" open>
-          <summary>
-            角色映射
-            {{ is_minimax ? draft.characterMappings.length : draft.gsviCharacterMappings.length }}
-          </summary>
+          <summary>角色映射 {{ mapping_count }}</summary>
           <p class="tavern-multi-tts-hint">只给映射名单里的角色生成语音；名单外的台词会跳过。</p>
           <div class="tavern-multi-tts-actions">
             <input
@@ -573,7 +734,52 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
               <button class="menu_button" type="button" @click="removeMapping(index)">删除</button>
             </div>
           </template>
-          <template v-else>
+          <template v-else-if="is_index_tts">
+            <div
+              v-for="(mapping, index) in draft.indexTtsCharacterMappings"
+              :key="`index-${index}`"
+              class="tavern-multi-tts-mapping is-index-tts"
+            >
+              <input
+                v-model="mapping.characterName"
+                class="text_pole"
+                type="text"
+                placeholder="角色名"
+              />
+              <select v-model="mapping.indexTtsVoiceId" class="text_pole">
+                <option value="">
+                  {{ index_tts_voices.length > 0 ? '音色预设' : '先拉取音色' }}
+                </option>
+                <option
+                  v-if="
+                    mapping.indexTtsVoiceId &&
+                    !index_tts_voices.some((item) => item.id === mapping.indexTtsVoiceId)
+                  "
+                  :value="mapping.indexTtsVoiceId"
+                >
+                  {{ mapping.indexTtsVoiceId }}
+                </option>
+                <option v-for="item in index_tts_voices" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+              <select v-model="mapping.indexTtsLanguage" class="text_pole">
+                <option v-for="item in INDEX_TTS_LANGUAGES" :key="item" :value="item">
+                  {{ item }}
+                </option>
+              </select>
+              <button
+                class="menu_button"
+                type="button"
+                :disabled="busy"
+                @click="testVoice(mapping.characterName)"
+              >
+                试听
+              </button>
+              <button class="menu_button" type="button" @click="removeMapping(index)">删除</button>
+            </div>
+          </template>
+          <template v-else-if="is_gsvi">
             <div
               v-for="(mapping, index) in draft.gsviCharacterMappings"
               :key="`gsvi-${index}`"
@@ -641,7 +847,7 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
             <option value="en">试听：英</option>
           </select>
           <button class="menu_button" type="button" :disabled="busy" @click="testVoice()">
-            {{ is_minimax ? '测试默认音色（消耗额度）' : '测试默认模型' }}
+            {{ test_voice_label }}
           </button>
         </div>
 
@@ -693,7 +899,7 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
             注入模板
             <textarea v-model="draft.injectTemplate" class="text_pole" rows="5"></textarea>
           </label>
-          <template v-if="!is_minimax">
+          <template v-if="is_gsvi">
             <label class="tavern-multi-tts-field">
               鉴权 Token
               <input

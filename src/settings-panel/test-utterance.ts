@@ -13,6 +13,12 @@ const GSVI_TEXT = {
   en: 'Hello, this is a GSVI reference voice sample.',
 } as const;
 
+const INDEX_TTS_TEXT = {
+  ja: 'こんにちは、これは IndexTTS のテスト音声です。',
+  zh: '你好，这是 IndexTTS 的测试语音。',
+  en: 'Hello, this is an IndexTTS test voice.',
+} as const;
+
 export const GSVI_TEXT_LANG_OPTIONS = [
   '中文',
   '英语',
@@ -37,5 +43,11 @@ export const GSVI_SPLIT_METHOD_OPTIONS = [
 ] as const;
 
 export function testUtterance(engine: TtsEngineId, language: TestLanguage): string {
-  return engine === 'local_gsvi' ? GSVI_TEXT[language] : MINIMAX_TEXT[language];
+  if (engine === 'local_gsvi') {
+    return GSVI_TEXT[language];
+  }
+  if (engine === 'index_tts') {
+    return INDEX_TTS_TEXT[language];
+  }
+  return MINIMAX_TEXT[language];
 }

@@ -29,7 +29,7 @@ export type AudioCacheListResult = {
 
 export type AudioCacheKeyInput = {
   text: string;
-  engine: 'minimax' | 'local_gsvi';
+  engine: 'minimax' | 'local_gsvi' | 'index_tts';
   minimax?: {
     region: 'international' | 'beijing';
     groupId: string;
@@ -55,6 +55,13 @@ export type AudioCacheKeyInput = {
     textLang: string;
     textSplitMethod: string;
     batchSize: number;
+  };
+  indexTts?: {
+    origin: string;
+    model: string;
+    voiceId: string;
+    language: string;
+    format: 'wav';
   };
 };
 
@@ -84,39 +91,54 @@ export function normalizeCacheOrigin(base_url: string): string {
   }
 }
 
+function scopedCacheFields(input: AudioCacheKeyInput) {
+  if (input.engine === 'minimax') {
+    return {
+      text: input.text,
+      engine: input.engine,
+      region: input.minimax?.region ?? '',
+      groupId: input.minimax?.groupId ?? '',
+      model: input.minimax?.model ?? '',
+      voiceId: input.minimax?.voiceId ?? '',
+      speed: input.minimax?.speed,
+      vol: input.minimax?.vol,
+      format: input.minimax?.format ?? 'mp3',
+    };
+  }
+  if (input.engine === 'local_gsvi') {
+    return {
+      text: input.text,
+      engine: input.engine,
+      origin: input.localGsvi?.origin ?? '',
+      model: input.localGsvi?.model ?? '',
+      format: input.localGsvi?.format ?? 'mp3',
+      useReferenceAudio: input.localGsvi?.useReferenceAudio ?? false,
+      character: input.localGsvi?.character ?? '',
+      language: input.localGsvi?.language ?? '',
+      emotion: input.localGsvi?.emotion ?? '',
+      referenceText: input.localGsvi?.referenceText ?? '',
+      speed: input.localGsvi?.speed,
+      topK: input.localGsvi?.topK,
+      topP: input.localGsvi?.topP,
+      temperature: input.localGsvi?.temperature,
+      textLang: input.localGsvi?.textLang ?? '',
+      textSplitMethod: input.localGsvi?.textSplitMethod ?? '',
+      batchSize: input.localGsvi?.batchSize,
+    };
+  }
+  return {
+    text: input.text,
+    engine: 'index_tts' as const,
+    origin: input.indexTts?.origin ?? '',
+    model: input.indexTts?.model ?? '',
+    voiceId: input.indexTts?.voiceId ?? '',
+    language: input.indexTts?.language ?? '',
+    format: input.indexTts?.format ?? 'wav',
+  };
+}
+
 export async function createAudioCacheKey(input: AudioCacheKeyInput): Promise<string> {
-  const scoped =
-    input.engine === 'minimax'
-      ? {
-          text: input.text,
-          engine: input.engine,
-          region: input.minimax?.region ?? '',
-          groupId: input.minimax?.groupId ?? '',
-          model: input.minimax?.model ?? '',
-          voiceId: input.minimax?.voiceId ?? '',
-          speed: input.minimax?.speed,
-          vol: input.minimax?.vol,
-          format: input.minimax?.format ?? 'mp3',
-        }
-      : {
-          text: input.text,
-          engine: input.engine,
-          origin: input.localGsvi?.origin ?? '',
-          model: input.localGsvi?.model ?? '',
-          format: input.localGsvi?.format ?? 'mp3',
-          useReferenceAudio: input.localGsvi?.useReferenceAudio ?? false,
-          character: input.localGsvi?.character ?? '',
-          language: input.localGsvi?.language ?? '',
-          emotion: input.localGsvi?.emotion ?? '',
-          referenceText: input.localGsvi?.referenceText ?? '',
-          speed: input.localGsvi?.speed,
-          topK: input.localGsvi?.topK,
-          topP: input.localGsvi?.topP,
-          temperature: input.localGsvi?.temperature,
-          textLang: input.localGsvi?.textLang ?? '',
-          textSplitMethod: input.localGsvi?.textSplitMethod ?? '',
-          batchSize: input.localGsvi?.batchSize,
-        };
+  const scoped = scopedCacheFields(input);
 
   const raw = JSON.stringify(scoped);
   if (

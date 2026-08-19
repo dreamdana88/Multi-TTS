@@ -1,4 +1,9 @@
-import type { MinimaxRegion, TtsEngineId } from './engines/contract';
+import {
+  INDEX_TTS_LANGUAGES,
+  type IndexTtsLanguage,
+  type MinimaxRegion,
+  type TtsEngineId,
+} from './engines/contract';
 
 export const EXTENSION_SETTINGS_SCHEMA_VERSION = 2 as const;
 
@@ -36,6 +41,17 @@ export type GsviCharacterVoiceMapping = {
 export type GsviCharacterMappingPreset = {
   name: string;
   mappings: GsviCharacterVoiceMapping[];
+};
+
+export type IndexTtsCharacterVoiceMapping = {
+  characterName: string;
+  indexTtsVoiceId: string;
+  indexTtsLanguage: IndexTtsLanguage;
+};
+
+export type IndexTtsCharacterMappingPreset = {
+  name: string;
+  mappings: IndexTtsCharacterVoiceMapping[];
 };
 
 export const DEFAULT_INJECT_TEMPLATE = [
@@ -92,6 +108,11 @@ export type ExtensionSettings = {
   characterMappingPresets: CharacterMappingPreset[];
   gsviCharacterMappings: GsviCharacterVoiceMapping[];
   gsviCharacterMappingPresets: GsviCharacterMappingPreset[];
+  indexTtsBaseUrl: string;
+  indexTtsVoiceId: string;
+  indexTtsLanguage: IndexTtsLanguage;
+  indexTtsCharacterMappings: IndexTtsCharacterVoiceMapping[];
+  indexTtsCharacterMappingPresets: IndexTtsCharacterMappingPreset[];
   injectEnabled: boolean;
   injectDepth: number;
   injectRole: InjectRole;
@@ -134,6 +155,11 @@ export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
   characterMappingPresets: [],
   gsviCharacterMappings: [],
   gsviCharacterMappingPresets: [],
+  indexTtsBaseUrl: 'http://127.0.0.1:7860',
+  indexTtsVoiceId: '',
+  indexTtsLanguage: 'ZH',
+  indexTtsCharacterMappings: [],
+  indexTtsCharacterMappingPresets: [],
   injectEnabled: true,
   injectDepth: 1,
   injectRole: 'system',
@@ -162,7 +188,16 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number,
 }
 
 function asEngine(value: unknown): TtsEngineId {
-  return value === 'local_gsvi' ? 'local_gsvi' : 'minimax';
+  if (value === 'minimax' || value === 'local_gsvi' || value === 'index_tts') {
+    return value;
+  }
+  return 'minimax';
+}
+
+function asIndexTtsLanguage(value: unknown): IndexTtsLanguage {
+  return (INDEX_TTS_LANGUAGES as readonly string[]).includes(String(value))
+    ? (value as IndexTtsLanguage)
+    : DEFAULT_EXTENSION_SETTINGS.indexTtsLanguage;
 }
 
 function asRegion(value: unknown): MinimaxRegion {
@@ -254,6 +289,33 @@ function parseGsviPresets(value: unknown): GsviCharacterMappingPreset[] {
     .filter((item) => item.name);
 }
 
+function parseIndexTtsMappings(value: unknown): IndexTtsCharacterVoiceMapping[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter(isRecord)
+    .map((item) => ({
+      characterName: asString(item.characterName, '').trim(),
+      indexTtsVoiceId: asString(item.indexTtsVoiceId, '').trim(),
+      indexTtsLanguage: asIndexTtsLanguage(item.indexTtsLanguage),
+    }))
+    .filter((item) => item.characterName || item.indexTtsVoiceId);
+}
+
+function parseIndexTtsPresets(value: unknown): IndexTtsCharacterMappingPreset[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter(isRecord)
+    .map((item) => ({
+      name: asString(item.name, '').trim(),
+      mappings: parseIndexTtsMappings(item.mappings),
+    }))
+    .filter((item) => item.name);
+}
+
 export function parseExtensionSettings(raw: unknown): ExtensionSettings {
   const source = isRecord(raw) ? raw : {};
   return {
@@ -292,6 +354,11 @@ export function parseExtensionSettings(raw: unknown): ExtensionSettings {
     characterMappingPresets: parseCharacterPresets(source.characterMappingPresets),
     gsviCharacterMappings: parseGsviMappings(source.gsviCharacterMappings),
     gsviCharacterMappingPresets: parseGsviPresets(source.gsviCharacterMappingPresets),
+    indexTtsBaseUrl: asString(source.indexTtsBaseUrl, DEFAULT_EXTENSION_SETTINGS.indexTtsBaseUrl),
+    indexTtsVoiceId: asString(source.indexTtsVoiceId, ''),
+    indexTtsLanguage: asIndexTtsLanguage(source.indexTtsLanguage),
+    indexTtsCharacterMappings: parseIndexTtsMappings(source.indexTtsCharacterMappings),
+    indexTtsCharacterMappingPresets: parseIndexTtsPresets(source.indexTtsCharacterMappingPresets),
     injectEnabled: asBoolean(source.injectEnabled, true),
     injectDepth: clampNumber(source.injectDepth, 0, 50, 1, true),
     injectRole: asInjectRole(source.injectRole),

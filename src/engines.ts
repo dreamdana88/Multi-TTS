@@ -1,9 +1,13 @@
+import { createIndexTtsAdapter } from './engines/index-tts';
 import { createLocalGsviAdapter } from './engines/local-gsvi';
 import { createMinimaxAdapter } from './engines/minimax';
+import { TtsRequestError } from './engines/request-error';
 import type { TtsEngineAdapter, TtsEngineId } from './engines/contract';
 
 export type {
   EngineHealth,
+  IndexTtsLanguage,
+  IndexTtsSynthesisRequest,
   LocalGsviSynthesisRequest,
   MinimaxRegion,
   MinimaxSynthesisRequest,
@@ -12,6 +16,7 @@ export type {
   TtsEngineId,
   VoiceDescriptor,
 } from './engines/contract';
+export { INDEX_TTS_LANGUAGES } from './engines/contract';
 export { TtsRequestError, isTtsRequestError } from './engines/request-error';
 export {
   MINIMAX_API_URLS,
@@ -30,10 +35,25 @@ export {
   createLocalGsviAdapter,
   parseGsviModelSelection,
 } from './engines/local-gsvi';
+export {
+  INDEX_TTS_API_VERSION,
+  INDEX_TTS_MODEL,
+  INDEX_TTS_MODEL_VERSION,
+  INDEX_TTS_SERVICE_NAME,
+  buildIndexTtsSpeechPayload,
+  createIndexTtsAdapter,
+  isIndexTtsLanguage,
+} from './engines/index-tts';
 
 export function createTtsAdapter(engine_id: TtsEngineId): TtsEngineAdapter {
+  if (engine_id === 'minimax') {
+    return createMinimaxAdapter();
+  }
   if (engine_id === 'local_gsvi') {
     return createLocalGsviAdapter();
   }
-  return createMinimaxAdapter();
+  if (engine_id === 'index_tts') {
+    return createIndexTtsAdapter();
+  }
+  throw new TtsRequestError(`未知 TTS 引擎：${String(engine_id)}`, 'config');
 }

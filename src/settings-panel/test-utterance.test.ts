@@ -6,5 +6,7 @@ describe('testUtterance', () => {
     expect(testUtterance('minimax', 'zh')).toContain('Tavern Multi-TTS');
     expect(testUtterance('local_gsvi', 'zh')).toContain('GSVI');
     expect(testUtterance('minimax', 'en')).not.toBe(testUtterance('local_gsvi', 'en'));
+    expect(testUtterance('index_tts', 'zh')).toContain('IndexTTS');
+    expect(testUtterance('index_tts', 'en')).not.toBe(testUtterance('minimax', 'en'));
   });
 });

@@ -21,6 +21,17 @@ describe('prompt injection', () => {
       ],
     };
     expect(resolveMappedCharacters(settings)).toEqual(['爱丽丝', '鲍勃']);
+    expect(
+      resolveMappedCharacters({
+        ...DEFAULT_EXTENSION_SETTINGS,
+        ttsEngine: 'index_tts',
+        characterMappings: [{ characterName: '被忽略的 MiniMax', minimaxVoiceId: 'mm' }],
+        indexTtsCharacterMappings: [
+          { characterName: '森', indexTtsVoiceId: 'sen', indexTtsLanguage: 'ZH' },
+          { characterName: '爱丽丝', indexTtsVoiceId: 'mori', indexTtsLanguage: 'JA' },
+        ],
+      }),
+    ).toEqual(['森', '爱丽丝']);
   });
 
   it('fills mapped_characters in the template', () => {

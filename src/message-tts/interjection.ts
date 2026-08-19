@@ -47,9 +47,12 @@ export function stripInterjectionsForLocalGsvi(text: string): string {
   return compactSpaces(text.replace(ALL_PAREN_INTERJECTION_REGEX, ''));
 }
 
-export function buildTtsInputText(raw_text: string, engine: 'minimax' | 'local_gsvi'): string {
+export function buildTtsInputText(
+  raw_text: string,
+  engine: 'minimax' | 'local_gsvi' | 'index_tts',
+): string {
   const normalized = normalizeSayTextForTts(raw_text);
-  if (engine === 'local_gsvi') {
+  if (engine === 'local_gsvi' || engine === 'index_tts') {
     return stripInterjectionsForLocalGsvi(normalized);
   }
   return normalized;

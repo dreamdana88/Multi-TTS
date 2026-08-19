@@ -18,7 +18,8 @@ function injectionInputsChanged(previous: ExtensionSettings, next: ExtensionSett
     previous.injectTemplate !== next.injectTemplate ||
     previous.ttsEngine !== next.ttsEngine ||
     !sameJson(previous.characterMappings, next.characterMappings) ||
-    !sameJson(previous.gsviCharacterMappings, next.gsviCharacterMappings)
+    !sameJson(previous.gsviCharacterMappings, next.gsviCharacterMappings) ||
+    !sameJson(previous.indexTtsCharacterMappings, next.indexTtsCharacterMappings)
   );
 }
 
@@ -27,7 +28,8 @@ function decorationInputsChanged(previous: ExtensionSettings, next: ExtensionSet
     previous.enabled !== next.enabled ||
     previous.ttsEngine !== next.ttsEngine ||
     !sameJson(previous.characterMappings, next.characterMappings) ||
-    !sameJson(previous.gsviCharacterMappings, next.gsviCharacterMappings)
+    !sameJson(previous.gsviCharacterMappings, next.gsviCharacterMappings) ||
+    !sameJson(previous.indexTtsCharacterMappings, next.indexTtsCharacterMappings)
   );
 }
 

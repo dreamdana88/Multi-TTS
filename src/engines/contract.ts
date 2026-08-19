@@ -1,6 +1,10 @@
-export type TtsEngineId = 'minimax' | 'local_gsvi';
+export type TtsEngineId = 'minimax' | 'local_gsvi' | 'index_tts';
 
 export type MinimaxRegion = 'international' | 'beijing';
+
+export const INDEX_TTS_LANGUAGES = ['ZH', 'EN', 'JA', 'AR', 'ES'] as const;
+
+export type IndexTtsLanguage = (typeof INDEX_TTS_LANGUAGES)[number];
 
 export type VoiceDescriptor = {
   id: string;
@@ -53,7 +57,18 @@ export type LocalGsviSynthesisRequest = {
   signal?: AbortSignal;
 };
 
-export type SynthesisRequest = MinimaxSynthesisRequest | LocalGsviSynthesisRequest;
+export type IndexTtsSynthesisRequest = {
+  engine: 'index_tts';
+  text: string;
+  baseUrl: string;
+  voiceId: string;
+  language: IndexTtsLanguage;
+  timeoutMs: number;
+  signal?: AbortSignal;
+};
+
+export type SynthesisRequest =
+  MinimaxSynthesisRequest | LocalGsviSynthesisRequest | IndexTtsSynthesisRequest;
 
 export type TtsEngineAdapter = {
   readonly id: TtsEngineId;

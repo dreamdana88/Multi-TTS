@@ -79,5 +79,28 @@ describe('planSettingsSync', () => {
       syncInjection: true,
       refreshDecorations: true,
     });
+    expect(
+      planSettingsSync(previous, {
+        ...previous,
+        ttsEngine: 'index_tts',
+        indexTtsCharacterMappings: [
+          { characterName: '爱丽丝', indexTtsVoiceId: 'mori', indexTtsLanguage: 'ZH' },
+        ],
+      }),
+    ).toEqual({
+      syncInjection: true,
+      refreshDecorations: true,
+    });
+    expect(
+      planSettingsSync(previous, {
+        ...previous,
+        indexTtsBaseUrl: 'http://127.0.0.1:7860',
+        indexTtsVoiceId: 'mori',
+        indexTtsLanguage: 'JA',
+      }),
+    ).toEqual({
+      syncInjection: false,
+      refreshDecorations: false,
+    });
   });
 });

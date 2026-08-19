@@ -90,6 +90,43 @@ describe('createAudioCacheKey', () => {
     const second = await createAudioCacheKey(gsviKeyInput('http://127.0.0.1:9880', 4));
     expect(first).not.toBe(second);
   });
+
+  it('isolates IndexTTS by text, origin, voice, and language only', async () => {
+    const base = {
+      text: '你好',
+      engine: 'index_tts' as const,
+      indexTts: {
+        origin: 'http://127.0.0.1:7860',
+        model: 'IndexTTS-2.5',
+        voiceId: 'mori',
+        language: 'ZH',
+        format: 'wav' as const,
+      },
+    };
+    const same = await createAudioCacheKey(base);
+    expect(await createAudioCacheKey({ ...base })).toBe(same);
+    expect(await createAudioCacheKey({ ...base, text: '另一句' })).not.toBe(same);
+    expect(
+      await createAudioCacheKey({
+        ...base,
+        indexTts: { ...base.indexTts, origin: 'http://192.168.1.8:7860' },
+      }),
+    ).not.toBe(same);
+    expect(
+      await createAudioCacheKey({
+        ...base,
+        indexTts: { ...base.indexTts, voiceId: 'sen' },
+      }),
+    ).not.toBe(same);
+    expect(
+      await createAudioCacheKey({
+        ...base,
+        indexTts: { ...base.indexTts, language: 'JA' },
+      }),
+    ).not.toBe(same);
+    expect(same).not.toBe(await createAudioCacheKey(sampleKeyInput()));
+    expect(same).not.toBe(await createAudioCacheKey(gsviKeyInput('http://127.0.0.1:7860')));
+  });
 });
 
 describe('memory audio cache', () => {

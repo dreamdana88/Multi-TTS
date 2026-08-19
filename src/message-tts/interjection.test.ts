@@ -25,6 +25,7 @@ describe('interjection normalization', () => {
     const raw = '(Laughs)出发 (softly)吧';
     expect(buildTtsInputText(raw, 'minimax')).toBe('(laughs)出发 吧');
     expect(buildTtsInputText(raw, 'local_gsvi')).toBe('出发 吧');
+    expect(buildTtsInputText(raw, 'index_tts')).toBe('出发 吧');
   });
 
   it('returns empty string when only illegal tags remain', () => {

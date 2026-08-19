@@ -14,9 +14,11 @@ export const ST_PROMPT_ROLES = {
 
 export function resolveMappedCharacters(settings: ExtensionSettings): string[] {
   const source =
-    settings.ttsEngine === 'local_gsvi'
-      ? settings.gsviCharacterMappings
-      : settings.characterMappings;
+    settings.ttsEngine === 'index_tts'
+      ? settings.indexTtsCharacterMappings
+      : settings.ttsEngine === 'local_gsvi'
+        ? settings.gsviCharacterMappings
+        : settings.characterMappings;
   const names: string[] = [];
   for (const item of source) {
     const name = item.characterName.trim();

@@ -1,6 +1,8 @@
 import { normalizeCacheOrigin, type AudioCacheKeyInput } from '../audio-cache';
+import { INDEX_TTS_MODEL } from '../engines';
 import type { ExtensionSettings } from '../extension-settings';
 import type {
+  IndexTtsSynthesisRequest,
   LocalGsviSynthesisRequest,
   MinimaxSynthesisRequest,
   SynthesisRequest,
@@ -12,6 +14,8 @@ export type ResolvedVoice = {
   gsviVoiceId?: string;
   gsviLanguage?: string;
   gsviEmotion?: string;
+  indexTtsVoiceId?: string;
+  indexTtsLanguage?: ExtensionSettings['indexTtsLanguage'];
 };
 
 function lastMatching<T>(items: T[], matches: (item: T) => boolean): T | undefined {
@@ -43,6 +47,17 @@ function isCompleteGsviMapping(
   );
 }
 
+function isCompleteIndexTtsMapping(
+  item: ExtensionSettings['indexTtsCharacterMappings'][number],
+  character: string,
+) {
+  return (
+    item.characterName.trim() === character &&
+    Boolean(item.indexTtsVoiceId.trim()) &&
+    Boolean(item.indexTtsLanguage)
+  );
+}
+
 export function hasCharacterMapping(
   settings: ExtensionSettings,
   segment_char: string | undefined,
@@ -51,6 +66,13 @@ export function hasCharacterMapping(
   if (!character) {
     return true;
   }
+  if (settings.ttsEngine === 'index_tts') {
+    return Boolean(
+      lastMatching(settings.indexTtsCharacterMappings, (item) =>
+        isCompleteIndexTtsMapping(item, character),
+      ),
+    );
+  }
   if (settings.ttsEngine === 'local_gsvi') {
     return Boolean(
       lastMatching(settings.gsviCharacterMappings, (item) =>
@@ -58,9 +80,12 @@ export function hasCharacterMapping(
       ),
     );
   }
-  return Boolean(
-    lastMatching(settings.characterMappings, (item) => isCompleteMinimaxMapping(item, character)),
-  );
+  if (settings.ttsEngine === 'minimax') {
+    return Boolean(
+      lastMatching(settings.characterMappings, (item) => isCompleteMinimaxMapping(item, character)),
+    );
+  }
+  return false;
 }
 
 export function resolveSegmentVoice(
@@ -68,6 +93,16 @@ export function resolveSegmentVoice(
   segment_char: string | undefined,
 ): ResolvedVoice {
   const character = segment_char?.trim() ?? '';
+  if (settings.ttsEngine === 'index_tts') {
+    const mapping = lastMatching(settings.indexTtsCharacterMappings, (item) =>
+      isCompleteIndexTtsMapping(item, character),
+    );
+    return {
+      engine: 'index_tts',
+      indexTtsVoiceId: mapping?.indexTtsVoiceId.trim() || settings.indexTtsVoiceId.trim(),
+      indexTtsLanguage: mapping?.indexTtsLanguage || settings.indexTtsLanguage,
+    };
+  }
   if (settings.ttsEngine === 'local_gsvi') {
     const mapping = lastMatching(settings.gsviCharacterMappings, (item) =>
       isCompleteGsviMapping(item, character),
@@ -101,7 +136,21 @@ export function buildSynthesisRequest(
     return null;
   }
   const voice = resolveSegmentVoice(settings, segment_char);
-  if (voice.engine === 'local_gsvi') {
+  if (settings.ttsEngine === 'index_tts' && voice.engine === 'index_tts') {
+    if (!settings.indexTtsBaseUrl.trim() || !voice.indexTtsVoiceId || !voice.indexTtsLanguage) {
+      return null;
+    }
+    const request: IndexTtsSynthesisRequest = {
+      engine: 'index_tts',
+      text,
+      baseUrl: settings.indexTtsBaseUrl,
+      voiceId: voice.indexTtsVoiceId,
+      language: voice.indexTtsLanguage,
+      timeoutMs: settings.requestTimeoutMs,
+    };
+    return request;
+  }
+  if (settings.ttsEngine === 'local_gsvi' && voice.engine === 'local_gsvi') {
     if (
       !settings.localGsviBaseUrl.trim() ||
       !voice.gsviVoiceId ||
@@ -131,6 +180,9 @@ export function buildSynthesisRequest(
     return request;
   }
 
+  if (settings.ttsEngine !== 'minimax' || voice.engine !== 'minimax') {
+    return null;
+  }
   if (!settings.apiKey.trim() || !settings.groupId.trim() || !voice.minimaxVoiceId) {
     return null;
   }
@@ -150,6 +202,19 @@ export function buildSynthesisRequest(
 }
 
 export function buildVoiceCatalogRequest(settings: ExtensionSettings): SynthesisRequest | null {
+  if (settings.ttsEngine === 'index_tts') {
+    if (!settings.indexTtsBaseUrl.trim()) {
+      return null;
+    }
+    return {
+      engine: 'index_tts',
+      text: 'catalog',
+      baseUrl: settings.indexTtsBaseUrl,
+      voiceId: settings.indexTtsVoiceId.trim() || 'catalog',
+      language: settings.indexTtsLanguage,
+      timeoutMs: settings.requestTimeoutMs,
+    };
+  }
   if (settings.ttsEngine === 'local_gsvi') {
     if (!settings.localGsviBaseUrl.trim()) {
       return null;
@@ -173,7 +238,7 @@ export function buildVoiceCatalogRequest(settings: ExtensionSettings): Synthesis
       timeoutMs: settings.requestTimeoutMs,
     };
   }
-  if (!settings.apiKey.trim()) {
+  if (settings.ttsEngine !== 'minimax' || !settings.apiKey.trim()) {
     return null;
   }
   return {
@@ -196,6 +261,19 @@ export function buildAudioCacheKeyInput(
   segment_char?: string,
 ): AudioCacheKeyInput {
   const voice = resolveSegmentVoice(settings, segment_char);
+  if (settings.ttsEngine === 'index_tts') {
+    return {
+      text,
+      engine: 'index_tts',
+      indexTts: {
+        origin: normalizeCacheOrigin(settings.indexTtsBaseUrl),
+        model: INDEX_TTS_MODEL,
+        voiceId: voice.indexTtsVoiceId ?? '',
+        language: voice.indexTtsLanguage ?? settings.indexTtsLanguage,
+        format: 'wav',
+      },
+    };
+  }
   if (settings.ttsEngine === 'local_gsvi') {
     return {
       text,
