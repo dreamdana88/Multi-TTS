@@ -111,7 +111,8 @@ describe('prompt injection', () => {
     });
     expect(fish_content).toContain('小鱼');
     expect(fish_content).toContain('[laughing]');
-    expect(fish_content).toContain('Fish Audio S2');
+    expect(fish_content).toContain('如[happy]');
+    expect(fish_content).toContain('标签应放在它实际影响的发声位置附近');
     expect(fish_content).toContain('禁止输出冗长句子');
     expect(fish_content).not.toContain('MiniMax custom');
     expect(fish_content).not.toContain('Index custom');
