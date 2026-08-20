@@ -366,54 +366,77 @@
   resize: vertical;
 }
 
-.tavern-multi-tts-settings input[type='range'] {
+.tavern-multi-tts-settings input[type='range'],
+.tavern-multi-tts-settings input[type='range']:hover,
+.tavern-multi-tts-settings input[type='range']:focus,
+.tavern-multi-tts-settings input[type='range']:active,
+.tavern-multi-tts-settings input[type='range']:not(:hover) {
   -moz-appearance: none !important;
   -webkit-appearance: none !important;
   appearance: none !important;
-  background: transparent !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(var(--mtts-field-bg), var(--mtts-field-bg)) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 6px !important;
   border: none !important;
   box-shadow: none !important;
-  color: inherit;
+  color: var(--mtts-accent) !important;
+  cursor: pointer;
+  filter: none !important;
   height: 18px !important;
   margin: 0 !important;
-  max-height: 18px;
+  max-height: 18px !important;
+  opacity: 1 !important;
+  outline: none !important;
   padding: 0 !important;
   width: 100%;
 }
 
-.tavern-multi-tts-settings input[type='range']::-webkit-slider-runnable-track {
-  background: var(--mtts-field-bg);
-  border: 1px solid var(--mtts-border);
-  border-radius: 999px;
-  height: 6px;
+.tavern-multi-tts-settings input[type='range']::-webkit-slider-runnable-track,
+.tavern-multi-tts-settings input[type='range']:hover::-webkit-slider-runnable-track,
+.tavern-multi-tts-settings input[type='range']:focus::-webkit-slider-runnable-track,
+.tavern-multi-tts-settings input[type='range']:active::-webkit-slider-runnable-track {
+  background: var(--mtts-field-bg) !important;
+  border: 1px solid var(--mtts-border) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  height: 6px !important;
 }
 
-.tavern-multi-tts-settings input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--mtts-accent);
-  border: 2px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--mtts-border);
-  height: 14px;
-  margin-top: -5px;
-  width: 14px;
+.tavern-multi-tts-settings input[type='range']::-webkit-slider-thumb,
+.tavern-multi-tts-settings input[type='range']:hover::-webkit-slider-thumb,
+.tavern-multi-tts-settings input[type='range']:focus::-webkit-slider-thumb,
+.tavern-multi-tts-settings input[type='range']:active::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: var(--mtts-accent) !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 1px var(--mtts-border) !important;
+  height: 14px !important;
+  margin-top: -5px !important;
+  width: 14px !important;
 }
 
-.tavern-multi-tts-settings input[type='range']::-moz-range-track {
-  background: var(--mtts-field-bg);
-  border: 1px solid var(--mtts-border);
-  border-radius: 999px;
-  height: 6px;
+.tavern-multi-tts-settings input[type='range']::-moz-range-track,
+.tavern-multi-tts-settings input[type='range']:hover::-moz-range-track,
+.tavern-multi-tts-settings input[type='range']:focus::-moz-range-track {
+  background: var(--mtts-field-bg) !important;
+  border: 1px solid var(--mtts-border) !important;
+  border-radius: 999px !important;
+  height: 6px !important;
 }
 
-.tavern-multi-tts-settings input[type='range']::-moz-range-thumb {
-  background: var(--mtts-accent);
-  border: 2px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--mtts-border);
-  height: 14px;
-  width: 14px;
+.tavern-multi-tts-settings input[type='range']::-moz-range-thumb,
+.tavern-multi-tts-settings input[type='range']:hover::-moz-range-thumb,
+.tavern-multi-tts-settings input[type='range']:focus::-moz-range-thumb {
+  background: var(--mtts-accent) !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 1px var(--mtts-border) !important;
+  height: 14px !important;
+  width: 14px !important;
 }
 
 .tavern-multi-tts-settings .mtts-empty {
