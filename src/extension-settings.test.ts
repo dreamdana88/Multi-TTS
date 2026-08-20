@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_EXTENSION_SETTINGS,
+  DEFAULT_INJECT_TEMPLATE,
   EXTENSION_SETTINGS_SCHEMA_VERSION,
   parseExtensionSettings,
 } from './extension-settings';
@@ -87,5 +88,31 @@ describe('parseExtensionSettings', () => {
         mappings: [{ characterName: '森', indexTtsVoiceId: 'sen', indexTtsLanguage: 'ZH' }],
       },
     ]);
+  });
+
+  it('replaces the previous default inject template and keeps custom text', () => {
+    const legacy = [
+      '<VOICE_RULE>',
+      '请仅对角色：${mapped_characters} 的“直接台词”添加 <say char=“角色名”>...</say> 标签。',
+      '角色映射名单：${mapped_characters}',
+      '若说话者在映射名单中，char 必须与映射角色名完全一致。',
+      '若说话者不在映射名单中，也必须填写真实说话角色名，char 不可省略。',
+      ' <say char=“角色名”>不要填<user>。',
+      '不要给旁白、动作描写、心理活动添、双语的中文翻译内容加 <say> 标签。',
+      '可在 <say> </say> 之间自然加入语气词标签，但不要滥用。',
+      '仅可使用以下语气词标签：',
+      '(laughs), (chuckle), (coughs), (clear-throat), (groans), (breath), (pant), (inhale), (exhale), (gasps), (sniffs), (sighs), (snorts), (burps), (lip-smacking), (humming), (hissing), (emm), (sneezes)',
+      '除上述外，禁止输出其它括号语气词（如 (softly)、(gently)）。',
+      '不要输出空的 <say></say>，不要嵌套 <say> 标签。',
+      '示例:',
+      ' <say char=“角色名”>“(laughs)你好呀！” </say>',
+      '</VOICE_RULE>',
+    ].join('\n');
+    expect(parseExtensionSettings({ injectTemplate: legacy }).injectTemplate).toBe(
+      DEFAULT_INJECT_TEMPLATE,
+    );
+    expect(parseExtensionSettings({ injectTemplate: '自定义模板' }).injectTemplate).toBe(
+      '自定义模板',
+    );
   });
 });

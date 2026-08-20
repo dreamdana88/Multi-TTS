@@ -43,7 +43,10 @@ describe('prompt injection', () => {
     expect(content).toContain('<VOICE_CHAR_RULE>');
     expect(content).not.toContain('${mapped_characters}');
     expect(content).toContain('(laughs)');
+    expect(content).toContain('char 必须与映射角色名完全一致，不要使用其他称呼。');
+    expect(content).toContain('禁止填<user>');
     expect(content).not.toContain('emo="名称:数值"');
+    expect(content).not.toContain('情绪规则：');
   });
 
   it('uses IndexTTS emo rules only for the IndexTTS engine', () => {
@@ -56,13 +59,16 @@ describe('prompt injection', () => {
       ],
     });
     expect(index_content).toContain('水无濑寻');
+    expect(index_content).toContain('总则：');
+    expect(index_content).toContain('情绪规则：');
     expect(index_content).toContain('日常、闲聊、平静叙述省略 emo');
     expect(index_content).toContain('喜、怒、哀、惧、厌恶、低落、惊喜、平静');
     expect(index_content).toContain('emo="怒:0.35"');
     expect(index_content).toContain('哀:0.30,低落:0.15');
-    expect(index_content).toContain('禁止：八位数组、英文模板名、emotion/intensity 属性');
+    expect(index_content).toContain('禁止：八位数组、英文情绪名、零值占位、重复名称、无意义堆叠。');
     expect(index_content).toContain('每句独立判断');
     expect(index_content).toContain('禁止括号语气词');
+    expect(index_content).toContain('不要使用其他称呼');
     expect(index_content).not.toContain('(laughs), (chuckle)');
     expect(index_content).not.toContain('自定义 MiniMax 模板');
 

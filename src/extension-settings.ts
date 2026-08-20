@@ -56,6 +56,23 @@ export type IndexTtsCharacterMappingPreset = {
 
 export const DEFAULT_INJECT_TEMPLATE = [
   '<VOICE_RULE>',
+  '请仅对角色：${mapped_characters} 的“直接台词”添加 <say char="角色名">...</say> 标签。',
+  '角色映射名单：${mapped_characters}',
+  'char 必须与映射角色名完全一致，不要使用其他称呼。',
+  '<say char="角色名">禁止填<user>。',
+  '不要给旁白、动作描写、心理活动、双语的中文翻译内容加 <say> 标签。',
+  '可在 <say> </say> 之间自然加入语气词标签，但不要滥用。',
+  '仅可使用以下语气词标签：',
+  '(laughs), (chuckle), (coughs), (clear-throat), (groans), (breath), (pant), (inhale), (exhale), (gasps), (sniffs), (sighs), (snorts), (burps), (lip-smacking), (humming), (hissing), (emm), (sneezes)',
+  '除上述外，禁止输出其它括号语气词（如 (softly)、(gently)）。',
+  '不要输出空的 <say></say>，不要嵌套 <say> 标签。',
+  '示例:',
+  ' <say char=“角色名”>“(laughs)你好呀！” </say>',
+  '</VOICE_RULE>',
+].join('\n');
+
+const LEGACY_DEFAULT_INJECT_TEMPLATE = [
+  '<VOICE_RULE>',
   '请仅对角色：${mapped_characters} 的“直接台词”添加 <say char=“角色名”>...</say> 标签。',
   '角色映射名单：${mapped_characters}',
   '若说话者在映射名单中，char 必须与映射角色名完全一致。',
@@ -172,6 +189,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asString(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
+}
+
+function resolveInjectTemplate(value: unknown): string {
+  const text = asString(value, DEFAULT_INJECT_TEMPLATE) || DEFAULT_INJECT_TEMPLATE;
+  if (text === LEGACY_DEFAULT_INJECT_TEMPLATE) {
+    return DEFAULT_INJECT_TEMPLATE;
+  }
+  return text;
 }
 
 function asBoolean(value: unknown, fallback: boolean): boolean {
@@ -362,7 +387,6 @@ export function parseExtensionSettings(raw: unknown): ExtensionSettings {
     injectEnabled: asBoolean(source.injectEnabled, true),
     injectDepth: clampNumber(source.injectDepth, 0, 50, 1, true),
     injectRole: asInjectRole(source.injectRole),
-    injectTemplate:
-      asString(source.injectTemplate, DEFAULT_INJECT_TEMPLATE) || DEFAULT_INJECT_TEMPLATE,
+    injectTemplate: resolveInjectTemplate(source.injectTemplate),
   };
 }
