@@ -16,6 +16,7 @@ function injectionInputsChanged(previous: ExtensionSettings, next: ExtensionSett
     previous.injectDepth !== next.injectDepth ||
     previous.injectRole !== next.injectRole ||
     previous.injectTemplate !== next.injectTemplate ||
+    previous.indexTtsInjectTemplate !== next.indexTtsInjectTemplate ||
     previous.ttsEngine !== next.ttsEngine ||
     !sameJson(previous.characterMappings, next.characterMappings) ||
     !sameJson(previous.gsviCharacterMappings, next.gsviCharacterMappings) ||

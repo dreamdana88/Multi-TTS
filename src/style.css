@@ -366,6 +366,13 @@
   resize: vertical;
 }
 
+.tavern-multi-tts-settings textarea[readonly] {
+  background-color: var(--mtts-field-bg) !important;
+  color: var(--mtts-ink);
+  cursor: default;
+  opacity: 1;
+}
+
 .tavern-multi-tts-settings input[type='range'],
 .tavern-multi-tts-settings input[type='range']:hover,
 .tavern-multi-tts-settings input[type='range']:focus,

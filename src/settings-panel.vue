@@ -1202,7 +1202,18 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
               </label>
               <label class="mtts-field">
                 <span class="mtts-label">注入模板</span>
-                <textarea v-model="draft.injectTemplate" class="text_pole" rows="5"></textarea>
+                <textarea
+                  v-if="is_index_tts"
+                  v-model="draft.indexTtsInjectTemplate"
+                  class="text_pole mtts-inject-template"
+                  rows="12"
+                ></textarea>
+                <textarea
+                  v-else
+                  v-model="draft.injectTemplate"
+                  class="text_pole mtts-inject-template"
+                  rows="5"
+                ></textarea>
               </label>
             </div>
           </details>

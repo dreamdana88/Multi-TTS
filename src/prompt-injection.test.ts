@@ -40,7 +40,7 @@ describe('prompt injection', () => {
       characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'a' }],
     });
     expect(content).toContain('爱丽丝');
-    expect(content).toContain('<VOICE_CHAR_RULE>');
+    expect(content).not.toContain('<VOICE_CHAR_RULE>');
     expect(content).not.toContain('${mapped_characters}');
     expect(content).toContain('(laughs)');
     expect(content).toContain('char 必须与映射角色名完全一致，不要使用其他称呼。');
@@ -71,6 +71,19 @@ describe('prompt injection', () => {
     expect(index_content).toContain('不要使用其他称呼');
     expect(index_content).not.toContain('(laughs), (chuckle)');
     expect(index_content).not.toContain('自定义 MiniMax 模板');
+    expect(index_content).not.toContain('<VOICE_CHAR_RULE>');
+
+    const custom_index = buildInjectContent({
+      ...DEFAULT_EXTENSION_SETTINGS,
+      ttsEngine: 'index_tts',
+      injectTemplate: '自定义 MiniMax 模板',
+      indexTtsInjectTemplate: 'Index 自定义 ${mapped_characters}',
+      indexTtsCharacterMappings: [
+        { characterName: '水无濑寻', indexTtsVoiceId: 'mori', indexTtsLanguage: 'ZH' },
+      ],
+    });
+    expect(custom_index).toBe('Index 自定义 水无濑寻');
+    expect(custom_index).not.toContain('自定义 MiniMax 模板');
 
     const gsvi_content = buildInjectContent({
       ...DEFAULT_EXTENSION_SETTINGS,

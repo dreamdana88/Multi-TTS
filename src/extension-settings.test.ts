@@ -114,5 +114,15 @@ describe('parseExtensionSettings', () => {
     expect(parseExtensionSettings({ injectTemplate: '自定义模板' }).injectTemplate).toBe(
       '自定义模板',
     );
+    const missing_index = parseExtensionSettings({ injectTemplate: '自定义模板' });
+    expect(missing_index.indexTtsInjectTemplate).toBe(
+      DEFAULT_EXTENSION_SETTINGS.indexTtsInjectTemplate,
+    );
+    expect(
+      parseExtensionSettings({ indexTtsInjectTemplate: 'Index 自定义' }).indexTtsInjectTemplate,
+    ).toBe('Index 自定义');
+    expect(parseExtensionSettings({ indexTtsInjectTemplate: 'Index 自定义' }).injectTemplate).toBe(
+      DEFAULT_INJECT_TEMPLATE,
+    );
   });
 });

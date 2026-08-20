@@ -71,6 +71,32 @@ export const DEFAULT_INJECT_TEMPLATE = [
   '</VOICE_RULE>',
 ].join('\n');
 
+export const DEFAULT_INDEX_TTS_INJECT_TEMPLATE = [
+  '<VOICE_RULE>',
+  '总则：',
+  '请仅对角色：${mapped_characters} 的“直接台词”添加 <say char="角色名">...</say> 标签。',
+  '角色映射名单：${mapped_characters}',
+  'char 必须与映射角色名完全一致，不要使用其他称呼。',
+  '<say char="角色名">禁止填<user>。',
+  '不要给旁白、动作描写、心理活动、双语的中文翻译内容加 <say> 标签。',
+  '不要输出空的 <say></say>，不要嵌套 <say> 标签。',
+  '禁止括号语气词（如 (laughs)、(sighs)、(softly)）。',
+  '',
+  '情绪规则：',
+  '当对话内容有明显情绪变化时应为角色添加情绪向量 emo="名称:数值"。',
+  '合法情绪向量仅限：喜、怒、哀、惧、厌恶、低落、惊喜、平静。',
+  '每句独立判断；不要沿用上一句，也不要给日常句补“平静”',
+  '日常、闲聊、平静叙述省略 emo，只写：<say char="角色名">台词</say>',
+  '允许使用1 至 3 项不同情绪；优先用一项，确有复合情绪时最多三项。多项用半角逗号分隔。char 与 emo 属性顺序不限。',
+  '每个数值必须是大于 0、不超过 1.0 的有限数字。轻微 0.10–0.35，明显 0.35–0.60，0.80 以上只用于重大爆发，数值使用尽量克制不要滥用。',
+  '禁止：八位数组、英文情绪名、零值占位、重复名称、无意义堆叠。',
+  '示例:',
+  '<say char="角色名">今天要去哪里？</say>',
+  '<say char="角色名" emo="怒:0.35">别骗我。</say>',
+  '<say char="角色名" emo="哀:0.30,低落:0.15">我不想再等了。</say>',
+  '</VOICE_RULE>',
+].join('\n');
+
 const LEGACY_DEFAULT_INJECT_TEMPLATE = [
   '<VOICE_RULE>',
   '请仅对角色：${mapped_characters} 的“直接台词”添加 <say char=“角色名”>...</say> 标签。',
@@ -134,6 +160,7 @@ export type ExtensionSettings = {
   injectDepth: number;
   injectRole: InjectRole;
   injectTemplate: string;
+  indexTtsInjectTemplate: string;
 };
 
 export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
@@ -181,6 +208,7 @@ export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
   injectDepth: 1,
   injectRole: 'system',
   injectTemplate: DEFAULT_INJECT_TEMPLATE,
+  indexTtsInjectTemplate: DEFAULT_INDEX_TTS_INJECT_TEMPLATE,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -388,5 +416,8 @@ export function parseExtensionSettings(raw: unknown): ExtensionSettings {
     injectDepth: clampNumber(source.injectDepth, 0, 50, 1, true),
     injectRole: asInjectRole(source.injectRole),
     injectTemplate: resolveInjectTemplate(source.injectTemplate),
+    indexTtsInjectTemplate:
+      asString(source.indexTtsInjectTemplate, DEFAULT_INDEX_TTS_INJECT_TEMPLATE) ||
+      DEFAULT_INDEX_TTS_INJECT_TEMPLATE,
   };
 }

@@ -37,6 +37,12 @@ describe('planSettingsSync', () => {
       syncInjection: true,
       refreshDecorations: false,
     });
+    expect(
+      planSettingsSync(previous, { ...previous, indexTtsInjectTemplate: 'index new' }),
+    ).toEqual({
+      syncInjection: true,
+      refreshDecorations: false,
+    });
   });
 
   it('refreshes decorations when enablement, engine, or mappings change', () => {

@@ -53,6 +53,24 @@ describe('settings panel UI', () => {
     expect(document.querySelector('.mtts-mapping-card')).not.toBeNull();
   });
 
+  it('shows an editable IndexTTS inject template on the IndexTTS tab', () => {
+    app = mountPanel({ ...DEFAULT_EXTENSION_SETTINGS, ttsEngine: 'index_tts' });
+    const textarea = document.querySelector<HTMLTextAreaElement>('.mtts-inject-template');
+    expect(textarea?.readOnly).toBe(false);
+    expect(textarea?.value).toContain('总则：');
+    expect(textarea?.value).toContain('情绪规则：');
+    expect(textarea?.value).toContain('emo="怒:0.35"');
+    expect(textarea?.value).not.toContain('(laughs), (chuckle)');
+  });
+
+  it('keeps MiniMax inject template editable', () => {
+    app = mountPanel();
+    const textarea = document.querySelector<HTMLTextAreaElement>('.mtts-inject-template');
+    expect(textarea?.readOnly).toBe(false);
+    expect(textarea?.value).toContain('(laughs), (chuckle)');
+    expect(textarea?.value).not.toContain('情绪规则：');
+  });
+
   it('keeps mapping presets out of the primary mapping section', () => {
     app = mountPanel();
     const mapping = document.querySelector('#mtts-mapping-title')?.closest('.mtts-section');
