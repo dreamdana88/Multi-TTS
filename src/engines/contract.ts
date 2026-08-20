@@ -1,4 +1,4 @@
-export type TtsEngineId = 'minimax' | 'local_gsvi' | 'index_tts';
+export type TtsEngineId = 'minimax' | 'local_gsvi' | 'index_tts' | 'fish_audio';
 
 export type MinimaxRegion = 'international' | 'beijing';
 
@@ -10,7 +10,7 @@ export type VoiceDescriptor = {
   id: string;
   name: string;
   description?: string[];
-  source?: 'system' | 'voice_cloning' | 'voice_generation' | 'gsvi_model';
+  source?: 'system' | 'voice_cloning' | 'voice_generation' | 'gsvi_model' | 'fish_audio';
   language?: string;
   gender?: string;
   languages?: string[];
@@ -74,8 +74,27 @@ export type IndexTtsSynthesisRequest = {
   emotion?: IndexTtsEmotionMap;
 };
 
+export const FISH_AUDIO_MODELS = ['s2.1-pro-free', 's2.1-pro'] as const;
+
+export type FishAudioModel = (typeof FISH_AUDIO_MODELS)[number];
+
+export type FishAudioSynthesisRequest = {
+  engine: 'fish_audio';
+  text: string;
+  apiKey: string;
+  model: FishAudioModel;
+  referenceId: string;
+  speed: number;
+  volume: number;
+  timeoutMs: number;
+  signal?: AbortSignal;
+};
+
 export type SynthesisRequest =
-  MinimaxSynthesisRequest | LocalGsviSynthesisRequest | IndexTtsSynthesisRequest;
+  | MinimaxSynthesisRequest
+  | LocalGsviSynthesisRequest
+  | IndexTtsSynthesisRequest
+  | FishAudioSynthesisRequest;
 
 export type TtsEngineAdapter = {
   readonly id: TtsEngineId;

@@ -38,7 +38,7 @@ describe('settings panel UI', () => {
     expect(text).toContain('角色映射会自动保存');
     expect(text).toContain('✓ 所有修改已自动保存');
     expect(text).toContain('尚未检查');
-    expect(document.querySelectorAll('[role="tab"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[role="tab"]')).toHaveLength(4);
   });
 
   it('adds a mapping card and hides the empty state', async () => {
@@ -77,6 +77,18 @@ describe('settings panel UI', () => {
     expect(textarea?.readOnly).toBe(false);
     expect(textarea?.value).toContain('(laughs), (chuckle)');
     expect(textarea?.value).not.toContain('情绪规则：');
+  });
+
+  it('shows Fish Audio fields and its independent prompt template', () => {
+    app = mountPanel({ ...DEFAULT_EXTENSION_SETTINGS, ttsEngine: 'fish_audio' });
+    const text = document.body.textContent ?? '';
+    expect(text).toContain('Fish Audio');
+    expect(text).toContain('可从 Fish Audio 音色页面复制模型 ID');
+    expect(text).toContain('S2.1 Pro Free');
+    expect(text).toContain('音量 0.00 dB');
+    const textarea = document.querySelector<HTMLTextAreaElement>('.mtts-inject-template');
+    expect(textarea?.value).toContain('[laughing]');
+    expect(textarea?.value).not.toContain('(laughs), (chuckle)');
   });
 
   it('keeps mapping presets out of the primary mapping section', () => {

@@ -16,6 +16,7 @@ export type EngineCatalogs = {
   minimax: EngineCatalog;
   local_gsvi: EngineCatalog;
   index_tts: EngineCatalog;
+  fish_audio: EngineCatalog;
 };
 
 export function emptyCatalogFilter(): CatalogFilter {
@@ -39,6 +40,7 @@ export function createEngineCatalogs(): EngineCatalogs {
     minimax: emptyEngineCatalog(),
     local_gsvi: emptyEngineCatalog(),
     index_tts: emptyEngineCatalog(),
+    fish_audio: emptyEngineCatalog(),
   };
 }
 
@@ -49,7 +51,10 @@ export function catalogForEngine(catalogs: EngineCatalogs, engine: TtsEngineId):
   if (engine === 'local_gsvi') {
     return catalogs.local_gsvi;
   }
-  return catalogs.index_tts;
+  if (engine === 'index_tts') {
+    return catalogs.index_tts;
+  }
+  return catalogs.fish_audio;
 }
 
 export function setEngineCatalogVoices(

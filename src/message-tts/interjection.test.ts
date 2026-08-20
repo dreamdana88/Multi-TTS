@@ -28,6 +28,16 @@ describe('interjection normalization', () => {
     expect(buildTtsInputText(raw, 'index_tts')).toBe('出发 吧');
   });
 
+  it('keeps Fish Audio bracket prompts for synthesis but hides only short English prompts on display', () => {
+    const raw =
+      '[laughing]你居然来了。[中文提示] [this sentence is intentionally far too long to be a prompt]';
+    expect(buildTtsInputText(raw, 'fish_audio')).toBe(raw);
+    expect(normalizeSayTextForDisplay(raw, 'fish_audio')).toBe(
+      '你居然来了。[中文提示] [this sentence is intentionally far too long to be a prompt]',
+    );
+    expect(normalizeSayTextForDisplay('[whispers softly]小声一点', 'fish_audio')).toBe('小声一点');
+  });
+
   it('returns empty string when only illegal tags remain', () => {
     expect(normalizeSayTextForTts('(softly) (gently)')).toBe('');
     expect(normalizeSayTextForDisplay('(laughs)')).toBe('');

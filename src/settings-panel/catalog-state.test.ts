@@ -14,7 +14,9 @@ describe('three engine catalogs', () => {
     catalogs.local_gsvi.filter.search = 'mori';
 
     setEngineCatalogVoices(catalogs, 'index_tts', [{ id: 'sen', name: '森' }]);
+    setEngineCatalogVoices(catalogs, 'fish_audio', [{ id: 'fish-1', name: 'Fish' }]);
     catalogs.index_tts.filter.search = '森';
+    catalogs.fish_audio.filter.search = 'fish';
 
     expect(catalogForEngine(catalogs, 'minimax').voices.map((item) => item.id)).toEqual([
       'voice-a',
@@ -23,11 +25,15 @@ describe('three engine catalogs', () => {
       'mori|v2Pro',
     ]);
     expect(catalogForEngine(catalogs, 'index_tts').voices.map((item) => item.id)).toEqual(['sen']);
+    expect(catalogForEngine(catalogs, 'fish_audio').voices.map((item) => item.id)).toEqual([
+      'fish-1',
+    ]);
     expect(catalogForEngine(catalogs, 'minimax').filter.search).toBe('青涩');
     expect(catalogForEngine(catalogs, 'minimax').filter.language).toBe('zh');
     expect(catalogForEngine(catalogs, 'local_gsvi').filter.search).toBe('mori');
     expect(catalogForEngine(catalogs, 'local_gsvi').filter.language).toBe('all');
     expect(catalogForEngine(catalogs, 'index_tts').filter.search).toBe('森');
+    expect(catalogForEngine(catalogs, 'fish_audio').filter.search).toBe('fish');
     expect(catalogForEngine(catalogs, 'index_tts').filter.language).toBe('all');
   });
 
@@ -36,10 +42,12 @@ describe('three engine catalogs', () => {
     setEngineCatalogVoices(catalogs, 'minimax', [{ id: 'voice-a', name: 'A' }]);
     setEngineCatalogVoices(catalogs, 'local_gsvi', [{ id: 'model-b', name: 'B' }]);
     setEngineCatalogVoices(catalogs, 'index_tts', [{ id: 'voice-d', name: 'D' }]);
+    setEngineCatalogVoices(catalogs, 'fish_audio', [{ id: 'voice-f', name: 'F' }]);
     setEngineCatalogVoices(catalogs, 'minimax', [{ id: 'voice-c', name: 'C' }]);
 
     expect(catalogForEngine(catalogs, 'minimax').voices).toEqual([{ id: 'voice-c', name: 'C' }]);
     expect(catalogForEngine(catalogs, 'local_gsvi').voices).toEqual([{ id: 'model-b', name: 'B' }]);
     expect(catalogForEngine(catalogs, 'index_tts').voices).toEqual([{ id: 'voice-d', name: 'D' }]);
+    expect(catalogForEngine(catalogs, 'fish_audio').voices).toEqual([{ id: 'voice-f', name: 'F' }]);
   });
 });

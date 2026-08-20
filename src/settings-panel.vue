@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { getDefaultAudioCacheStats, clearDefaultAudioCache } from './audio-cache';
 import { playAudioBlob } from './audio-playback';
 import {
+  FISH_AUDIO_MODELS,
   INDEX_TTS_LANGUAGES,
   createTtsAdapter,
   isTtsRequestError,
@@ -63,6 +64,7 @@ const connection_by_engine = reactive<Record<TtsEngineId, EngineConnection>>({
   minimax: { kind: 'unchecked', detail: '' },
   local_gsvi: { kind: 'unchecked', detail: '' },
   index_tts: { kind: 'unchecked', detail: '' },
+  fish_audio: { kind: 'unchecked', detail: '' },
 });
 
 let save_timer: number | undefined;
@@ -72,9 +74,11 @@ let media_query: MediaQueryList | null = null;
 const is_minimax = computed(() => draft.ttsEngine === 'minimax');
 const is_gsvi = computed(() => draft.ttsEngine === 'local_gsvi');
 const is_index_tts = computed(() => draft.ttsEngine === 'index_tts');
+const is_fish_audio = computed(() => draft.ttsEngine === 'fish_audio');
 const minimax_voices = computed(() => catalogs.minimax.voices);
 const gsvi_voices = computed(() => catalogs.local_gsvi.voices);
 const index_tts_voices = computed(() => catalogs.index_tts.voices);
+const fish_audio_voices = computed(() => catalogs.fish_audio.voices);
 const filtered_voices = computed(() =>
   filterVoiceCatalog(catalogs.minimax.voices, catalogs.minimax.filter),
 );
@@ -90,6 +94,9 @@ const mapping_count = computed(() => {
   if (is_index_tts.value) {
     return draft.indexTtsCharacterMappings.length;
   }
+  if (is_fish_audio.value) {
+    return draft.fishAudioCharacterMappings.length;
+  }
   if (is_gsvi.value) {
     return draft.gsviCharacterMappings.length;
   }
@@ -98,6 +105,9 @@ const mapping_count = computed(() => {
 const mapping_presets = computed(() => {
   if (is_index_tts.value) {
     return sortPresets(draft.indexTtsCharacterMappingPresets);
+  }
+  if (is_fish_audio.value) {
+    return sortPresets(draft.fishAudioCharacterMappingPresets);
   }
   if (is_gsvi.value) {
     return sortPresets(draft.gsviCharacterMappingPresets);
@@ -110,7 +120,9 @@ const duplicated_mapping_names = computed(() =>
       ? draft.indexTtsCharacterMappings
       : is_gsvi.value
         ? draft.gsviCharacterMappings
-        : draft.characterMappings
+        : is_fish_audio.value
+          ? draft.fishAudioCharacterMappings
+          : draft.characterMappings
     ).map((item) => item.characterName),
   ),
 );
@@ -121,6 +133,9 @@ const test_voice_label = computed(() => {
   if (is_gsvi.value) {
     return '试听默认模型';
   }
+  if (is_fish_audio.value) {
+    return '试听默认音色（消耗额度）';
+  }
   return '试听默认音色';
 });
 const cache_size_text = computed(() => formatCacheSize(cache_bytes.value));
@@ -130,6 +145,9 @@ const engine_name = computed(() => {
   }
   if (is_gsvi.value) {
     return 'GSVI';
+  }
+  if (is_fish_audio.value) {
+    return 'Fish Audio';
   }
   return 'MiniMax';
 });
@@ -274,6 +292,15 @@ function completeIndexTtsMappings() {
     .filter((item) => item.characterName && item.indexTtsVoiceId && item.indexTtsLanguage);
 }
 
+function completeFishAudioMappings() {
+  return draft.fishAudioCharacterMappings
+    .map((item) => ({
+      characterName: item.characterName.trim(),
+      fishAudioReferenceId: item.fishAudioReferenceId.trim(),
+    }))
+    .filter((item) => item.characterName && item.fishAudioReferenceId);
+}
+
 function catalogMissingMessage() {
   if (draft.ttsEngine === 'minimax') {
     return '请先填写 API Key';
@@ -281,12 +308,18 @@ function catalogMissingMessage() {
   if (draft.ttsEngine === 'local_gsvi') {
     return '请先填写 Local-GSVI 服务地址';
   }
+  if (draft.ttsEngine === 'fish_audio') {
+    return '请先填写 Fish Audio API Key';
+  }
   return '请先填写 IndexTTS 服务地址';
 }
 
 function catalogLoadedMessage(count: number) {
   if (draft.ttsEngine === 'local_gsvi') {
     return `已加载 ${count} 个模型`;
+  }
+  if (draft.ttsEngine === 'fish_audio') {
+    return `已加载 ${count} 个音色模型`;
   }
   return `已加载 ${count} 个音色`;
 }
@@ -358,6 +391,13 @@ function addMapping() {
     });
     return;
   }
+  if (is_fish_audio.value) {
+    draft.fishAudioCharacterMappings.push({
+      characterName: '',
+      fishAudioReferenceId: '',
+    });
+    return;
+  }
   draft.indexTtsCharacterMappings.push({
     characterName: '',
     indexTtsVoiceId: '',
@@ -374,6 +414,10 @@ function removeMapping(index: number) {
     draft.gsviCharacterMappings.splice(index, 1);
     return;
   }
+  if (is_fish_audio.value) {
+    draft.fishAudioCharacterMappings.splice(index, 1);
+    return;
+  }
   draft.indexTtsCharacterMappings.splice(index, 1);
 }
 
@@ -387,12 +431,19 @@ function savePreset() {
     ? saveNamedPreset(draft.characterMappingPresets, name, completeMinimaxMappings(), exists)
     : is_gsvi.value
       ? saveNamedPreset(draft.gsviCharacterMappingPresets, name, completeGsviMappings(), exists)
-      : saveNamedPreset(
-          draft.indexTtsCharacterMappingPresets,
-          name,
-          completeIndexTtsMappings(),
-          exists,
-        );
+      : is_fish_audio.value
+        ? saveNamedPreset(
+            draft.fishAudioCharacterMappingPresets,
+            name,
+            completeFishAudioMappings(),
+            exists,
+          )
+        : saveNamedPreset(
+            draft.indexTtsCharacterMappingPresets,
+            name,
+            completeIndexTtsMappings(),
+            exists,
+          );
   if ('error' in result) {
     setNotice(presetNotice(result.error), true);
     return;
@@ -402,6 +453,9 @@ function savePreset() {
   } else if (is_gsvi.value) {
     draft.gsviCharacterMappingPresets =
       result.presets as ExtensionSettings['gsviCharacterMappingPresets'];
+  } else if (is_fish_audio.value) {
+    draft.fishAudioCharacterMappingPresets =
+      result.presets as ExtensionSettings['fishAudioCharacterMappingPresets'];
   } else {
     draft.indexTtsCharacterMappingPresets =
       result.presets as ExtensionSettings['indexTtsCharacterMappingPresets'];
@@ -415,7 +469,9 @@ function loadPreset() {
     ? loadNamedPreset(draft.characterMappingPresets, selected_mapping_preset.value)
     : is_gsvi.value
       ? loadNamedPreset(draft.gsviCharacterMappingPresets, selected_mapping_preset.value)
-      : loadNamedPreset(draft.indexTtsCharacterMappingPresets, selected_mapping_preset.value);
+      : is_fish_audio.value
+        ? loadNamedPreset(draft.fishAudioCharacterMappingPresets, selected_mapping_preset.value)
+        : loadNamedPreset(draft.indexTtsCharacterMappingPresets, selected_mapping_preset.value);
   if ('error' in result) {
     setNotice(presetNotice(result.error), true);
     return;
@@ -424,7 +480,9 @@ function loadPreset() {
     ? completeMinimaxMappings().length > 0
     : is_gsvi.value
       ? completeGsviMappings().length > 0
-      : completeIndexTtsMappings().length > 0;
+      : is_fish_audio.value
+        ? completeFishAudioMappings().length > 0
+        : completeIndexTtsMappings().length > 0;
   if (has_current && !window.confirm('载入方案会覆盖当前映射，确定继续吗？')) {
     return;
   }
@@ -432,6 +490,9 @@ function loadPreset() {
     draft.characterMappings = result.mappings as ExtensionSettings['characterMappings'];
   } else if (is_gsvi.value) {
     draft.gsviCharacterMappings = result.mappings as ExtensionSettings['gsviCharacterMappings'];
+  } else if (is_fish_audio.value) {
+    draft.fishAudioCharacterMappings =
+      result.mappings as ExtensionSettings['fishAudioCharacterMappings'];
   } else {
     draft.indexTtsCharacterMappings =
       result.mappings as ExtensionSettings['indexTtsCharacterMappings'];
@@ -447,7 +508,9 @@ function deletePreset() {
     ? deleteNamedPreset(draft.characterMappingPresets, selected_mapping_preset.value)
     : is_gsvi.value
       ? deleteNamedPreset(draft.gsviCharacterMappingPresets, selected_mapping_preset.value)
-      : deleteNamedPreset(draft.indexTtsCharacterMappingPresets, selected_mapping_preset.value);
+      : is_fish_audio.value
+        ? deleteNamedPreset(draft.fishAudioCharacterMappingPresets, selected_mapping_preset.value)
+        : deleteNamedPreset(draft.indexTtsCharacterMappingPresets, selected_mapping_preset.value);
   if ('error' in result) {
     setNotice(presetNotice(result.error), true);
     return;
@@ -457,6 +520,9 @@ function deletePreset() {
   } else if (is_gsvi.value) {
     draft.gsviCharacterMappingPresets =
       result.presets as ExtensionSettings['gsviCharacterMappingPresets'];
+  } else if (is_fish_audio.value) {
+    draft.fishAudioCharacterMappingPresets =
+      result.presets as ExtensionSettings['fishAudioCharacterMappingPresets'];
   } else {
     draft.indexTtsCharacterMappingPresets =
       result.presets as ExtensionSettings['indexTtsCharacterMappingPresets'];
@@ -466,6 +532,26 @@ function deletePreset() {
 }
 
 async function checkConnection() {
+  if (draft.ttsEngine === 'fish_audio') {
+    await withBusy(
+      async () => {
+        setConnection('connecting');
+        const request = buildVoiceCatalogRequest(draft);
+        if (!request || request.engine !== 'fish_audio') {
+          const message = '请先填写 Fish Audio API Key';
+          setConnection('offline', message);
+          setNotice(message, true);
+          return;
+        }
+        const health = await createTtsAdapter('fish_audio').checkHealth(request);
+        setConnection(health.ok ? 'online' : 'offline', health.message);
+        setNotice(health.message, !health.ok);
+      },
+      '',
+      '检查 Fish Audio 连接失败',
+    );
+    return;
+  }
   if (draft.ttsEngine !== 'index_tts') {
     await loadCatalog(true);
     return;
@@ -681,6 +767,16 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
             >
               IndexTTS
             </button>
+            <button
+              class="mtts-tab"
+              type="button"
+              role="tab"
+              :class="{ 'is-active': is_fish_audio }"
+              :aria-selected="is_fish_audio"
+              @click="selectEngine('fish_audio')"
+            >
+              Fish Audio
+            </button>
           </div>
 
           <section class="mtts-section" aria-labelledby="mtts-service-title">
@@ -847,6 +943,62 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                     </option>
                   </select>
                 </label>
+              </div>
+            </template>
+
+            <template v-else-if="is_fish_audio">
+              <label class="mtts-field">
+                <span class="mtts-label">API Key</span>
+                <input
+                  v-model="draft.fishAudioApiKey"
+                  class="text_pole"
+                  type="password"
+                  autocomplete="off"
+                />
+              </label>
+              <label class="mtts-field">
+                <span class="mtts-label">模型档位</span>
+                <select v-model="draft.fishAudioModel" class="text_pole">
+                  <option v-for="model in FISH_AUDIO_MODELS" :key="model" :value="model">
+                    {{ model === 's2.1-pro-free' ? 'S2.1 Pro Free' : 'S2.1 Pro' }}
+                  </option>
+                </select>
+              </label>
+              <label class="mtts-field">
+                <span class="mtts-label">默认音色模型 ID</span>
+                <input
+                  v-model="draft.fishAudioReferenceId"
+                  class="text_pole"
+                  type="text"
+                  list="fish-audio-voice-suggestions"
+                  placeholder="可输入公共模型 ID"
+                />
+              </label>
+              <datalist id="fish-audio-voice-suggestions">
+                <option v-for="item in fish_audio_voices" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </datalist>
+              <p class="mtts-hint">
+                可从 Fish Audio 音色页面复制模型 ID；“拉取模型”只读取当前账号自己的模型。
+              </p>
+              <div class="mtts-actions">
+                <button
+                  class="mtts-btn mtts-btn-primary"
+                  type="button"
+                  :disabled="busy"
+                  @click="checkConnection"
+                >
+                  检查连接
+                </button>
+                <button
+                  class="mtts-btn mtts-btn-secondary"
+                  type="button"
+                  :disabled="busy"
+                  @click="loadCatalog(true)"
+                >
+                  拉取模型
+                </button>
               </div>
             </template>
 
@@ -1053,6 +1205,44 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                   </div>
                 </article>
               </template>
+              <template v-else-if="is_fish_audio">
+                <article
+                  v-for="(mapping, index) in draft.fishAudioCharacterMappings"
+                  :key="`fish-${index}`"
+                  class="mtts-mapping-card"
+                >
+                  <label class="mtts-field">
+                    <span class="mtts-label">角色名</span>
+                    <input v-model="mapping.characterName" class="text_pole" type="text" />
+                  </label>
+                  <label class="mtts-field">
+                    <span class="mtts-label">Fish Audio 音色模型 ID</span>
+                    <input
+                      v-model="mapping.fishAudioReferenceId"
+                      class="text_pole"
+                      type="text"
+                      list="fish-audio-voice-suggestions"
+                    />
+                  </label>
+                  <div class="mtts-mapping-actions">
+                    <button
+                      class="mtts-btn mtts-btn-secondary"
+                      type="button"
+                      :disabled="busy"
+                      @click="testVoice(mapping.characterName)"
+                    >
+                      试听
+                    </button>
+                    <button
+                      class="mtts-btn mtts-btn-danger"
+                      type="button"
+                      @click="removeMapping(index)"
+                    >
+                      删除
+                    </button>
+                  </div>
+                </article>
+              </template>
               <template v-else-if="is_gsvi">
                 <article
                   v-for="(mapping, index) in draft.gsviCharacterMappings"
@@ -1207,6 +1397,12 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                   v-model="draft.indexTtsInjectTemplate"
                   class="text_pole mtts-inject-template"
                   rows="12"
+                ></textarea>
+                <textarea
+                  v-else-if="is_fish_audio"
+                  v-model="draft.fishAudioInjectTemplate"
+                  class="text_pole mtts-inject-template"
+                  rows="18"
                 ></textarea>
                 <textarea
                   v-else
@@ -1368,6 +1564,28 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                     max="1"
                     step="0.01"
                   />
+                </label>
+              </template>
+              <template v-else-if="is_fish_audio">
+                <label class="mtts-field">
+                  <span class="mtts-label">语速 {{ draft.fishAudioSpeed.toFixed(2) }}</span>
+                  <input
+                    v-model.number="draft.fishAudioSpeed"
+                    type="range"
+                    min="0.5"
+                    max="2"
+                    step="0.05"
+                  />
+                </label>
+                <label class="mtts-field">
+                  <span class="mtts-label">音量 {{ draft.fishAudioVolume.toFixed(2) }} dB</span>
+                  <input
+                    v-model.number="draft.fishAudioVolume"
+                    class="text_pole"
+                    type="number"
+                    step="0.1"
+                  />
+                  <p class="mtts-hint">Fish Audio OpenAPI 未声明音量上下限，按 dB 数值发送。</p>
                 </label>
               </template>
               <div class="mtts-actions">

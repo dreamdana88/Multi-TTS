@@ -17,10 +17,12 @@ function injectionInputsChanged(previous: ExtensionSettings, next: ExtensionSett
     previous.injectRole !== next.injectRole ||
     previous.injectTemplate !== next.injectTemplate ||
     previous.indexTtsInjectTemplate !== next.indexTtsInjectTemplate ||
+    previous.fishAudioInjectTemplate !== next.fishAudioInjectTemplate ||
     previous.ttsEngine !== next.ttsEngine ||
     !sameJson(previous.characterMappings, next.characterMappings) ||
     !sameJson(previous.gsviCharacterMappings, next.gsviCharacterMappings) ||
-    !sameJson(previous.indexTtsCharacterMappings, next.indexTtsCharacterMappings)
+    !sameJson(previous.indexTtsCharacterMappings, next.indexTtsCharacterMappings) ||
+    !sameJson(previous.fishAudioCharacterMappings, next.fishAudioCharacterMappings)
   );
 }
 
@@ -30,7 +32,8 @@ function decorationInputsChanged(previous: ExtensionSettings, next: ExtensionSet
     previous.ttsEngine !== next.ttsEngine ||
     !sameJson(previous.characterMappings, next.characterMappings) ||
     !sameJson(previous.gsviCharacterMappings, next.gsviCharacterMappings) ||
-    !sameJson(previous.indexTtsCharacterMappings, next.indexTtsCharacterMappings)
+    !sameJson(previous.indexTtsCharacterMappings, next.indexTtsCharacterMappings) ||
+    !sameJson(previous.fishAudioCharacterMappings, next.fishAudioCharacterMappings)
   );
 }
 

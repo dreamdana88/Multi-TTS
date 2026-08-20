@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_EXTENSION_SETTINGS,
+  DEFAULT_FISH_AUDIO_INJECT_TEMPLATE,
   DEFAULT_INJECT_TEMPLATE,
   EXTENSION_SETTINGS_SCHEMA_VERSION,
   parseExtensionSettings,
@@ -133,6 +134,38 @@ describe('parseExtensionSettings', () => {
     ).toBe('Index 自定义');
     expect(parseExtensionSettings({ indexTtsInjectTemplate: 'Index 自定义' }).injectTemplate).toBe(
       DEFAULT_INJECT_TEMPLATE,
+    );
+  });
+
+  it('parses Fish Audio settings independently with OpenAPI speed validation', () => {
+    const parsed = parseExtensionSettings({
+      ttsEngine: 'fish_audio',
+      fishAudioApiKey: 'fish-secret',
+      fishAudioModel: 's2.1-pro',
+      fishAudioReferenceId: 'public-model',
+      fishAudioSpeed: 3,
+      fishAudioVolume: -18,
+      fishAudioCharacterMappings: [
+        { characterName: '爱丽丝', fishAudioReferenceId: 'mapped-model' },
+      ],
+      fishAudioCharacterMappingPresets: [
+        {
+          name: 'Fish 角色组',
+          mappings: [{ characterName: '爱丽丝', fishAudioReferenceId: 'mapped-model' }],
+        },
+      ],
+    });
+    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.fishAudioModel).toBe('s2.1-pro');
+    expect(parsed.fishAudioSpeed).toBe(2);
+    expect(parsed.fishAudioVolume).toBe(-18);
+    expect(parsed.fishAudioCharacterMappings).toEqual([
+      { characterName: '爱丽丝', fishAudioReferenceId: 'mapped-model' },
+    ]);
+    expect(parsed.fishAudioCharacterMappingPresets[0]?.name).toBe('Fish 角色组');
+    expect(parsed.fishAudioInjectTemplate).toBe(DEFAULT_FISH_AUDIO_INJECT_TEMPLATE);
+    expect(parseExtensionSettings({ fishAudioModel: 's1' }).fishAudioModel).toBe(
+      DEFAULT_EXTENSION_SETTINGS.fishAudioModel,
     );
   });
 });

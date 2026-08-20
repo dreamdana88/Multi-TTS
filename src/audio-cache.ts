@@ -29,7 +29,7 @@ export type AudioCacheListResult = {
 
 export type AudioCacheKeyInput = {
   text: string;
-  engine: 'minimax' | 'local_gsvi' | 'index_tts';
+  engine: 'minimax' | 'local_gsvi' | 'index_tts' | 'fish_audio';
   minimax?: {
     region: 'international' | 'beijing';
     groupId: string;
@@ -65,6 +65,14 @@ export type AudioCacheKeyInput = {
     durationFactor: number;
     emoWeight: number;
     emotion?: string;
+  };
+  fishAudio?: {
+    origin: string;
+    model: string;
+    referenceId: string;
+    speed: number;
+    volume: number;
+    format: 'mp3';
   };
 };
 
@@ -127,6 +135,18 @@ function scopedCacheFields(input: AudioCacheKeyInput) {
       textLang: input.localGsvi?.textLang ?? '',
       textSplitMethod: input.localGsvi?.textSplitMethod ?? '',
       batchSize: input.localGsvi?.batchSize,
+    };
+  }
+  if (input.engine === 'fish_audio') {
+    return {
+      text: input.text,
+      engine: input.engine,
+      origin: input.fishAudio?.origin ?? '',
+      model: input.fishAudio?.model ?? '',
+      referenceId: input.fishAudio?.referenceId ?? '',
+      speed: input.fishAudio?.speed,
+      volume: input.fishAudio?.volume,
+      format: input.fishAudio?.format ?? 'mp3',
     };
   }
   return {

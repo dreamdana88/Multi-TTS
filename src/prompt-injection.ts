@@ -18,7 +18,9 @@ export function resolveMappedCharacters(settings: ExtensionSettings): string[] {
       ? settings.indexTtsCharacterMappings
       : settings.ttsEngine === 'local_gsvi'
         ? settings.gsviCharacterMappings
-        : settings.characterMappings;
+        : settings.ttsEngine === 'fish_audio'
+          ? settings.fishAudioCharacterMappings
+          : settings.characterMappings;
   const names: string[] = [];
   for (const item of source) {
     const name = item.characterName.trim();
@@ -32,6 +34,9 @@ export function resolveMappedCharacters(settings: ExtensionSettings): string[] {
 function templateForEngine(settings: ExtensionSettings): string {
   if (settings.ttsEngine === 'index_tts') {
     return settings.indexTtsInjectTemplate;
+  }
+  if (settings.ttsEngine === 'fish_audio') {
+    return settings.fishAudioInjectTemplate;
   }
   return settings.injectTemplate;
 }

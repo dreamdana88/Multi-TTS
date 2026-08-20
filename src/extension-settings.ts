@@ -1,11 +1,13 @@
 import {
+  FISH_AUDIO_MODELS,
   INDEX_TTS_LANGUAGES,
+  type FishAudioModel,
   type IndexTtsLanguage,
   type MinimaxRegion,
   type TtsEngineId,
 } from './engines/contract';
 
-export const EXTENSION_SETTINGS_SCHEMA_VERSION = 2 as const;
+export const EXTENSION_SETTINGS_SCHEMA_VERSION = 3 as const;
 
 export const TTS_MODELS = [
   'speech-02-hd',
@@ -54,6 +56,16 @@ export type IndexTtsCharacterMappingPreset = {
   mappings: IndexTtsCharacterVoiceMapping[];
 };
 
+export type FishAudioCharacterMapping = {
+  characterName: string;
+  fishAudioReferenceId: string;
+};
+
+export type FishAudioCharacterMappingPreset = {
+  name: string;
+  mappings: FishAudioCharacterMapping[];
+};
+
 export const DEFAULT_INJECT_TEMPLATE = [
   '<VOICE_RULE>',
   '请仅对角色：${mapped_characters} 的“直接台词”添加 <say char="角色名">...</say> 标签。',
@@ -94,6 +106,37 @@ export const DEFAULT_INDEX_TTS_INJECT_TEMPLATE = [
   '<say char="角色名">今天要去哪里？</say>',
   '<say char="角色名" emo="怒:0.35">别骗我。</say>',
   '<say char="角色名" emo="哀:0.30,低落:0.15">我不想再等了。</say>',
+  '</VOICE_RULE>',
+].join('\n');
+
+export const DEFAULT_FISH_AUDIO_INJECT_TEMPLATE = [
+  '<VOICE_RULE>',
+  '请仅对角色：${mapped_characters} 的直接台词添加 <say char="角色名">...</say> 标签。',
+  '角色映射名单：${mapped_characters}',
+  'char 必须与映射角色名完全一致。',
+  '禁止给旁白、动作、心理描写、翻译文本添加 say 标签。',
+  '禁止空 say，禁止嵌套 say。',
+  '',
+  'Fish Audio S2 支持方括号自然语言语音提示。',
+  '日常、平静、普通闲聊不要添加提示标签。',
+  '只有出现明确语气、情绪或拟声需求时，才在台词中少量使用英文方括号提示。',
+  '每句通常不超过 1 项，确有必要最多 2 项。',
+  '标签必须短小、自然、符合上下文，不要堆叠或使用互相冲突的标签。',
+  '',
+  '可用写法示例：',
+  '<say char="角色名">今天要去哪里？</say>',
+  '<say char="角色名">[laughing]你居然真的来了。</say>',
+  '<say char="角色名">我只是有点累。[sigh]</say>',
+  '<say char="角色名">[whispers softly]小声一点，别让他们听见。</say>',
+  '<say char="角色名">[inhale]好，我准备好了。</say>',
+  '',
+  '常见提示包括：',
+  '[laugh]、[laughing]、[chuckle]、[sigh]、[gasp]、',
+  '[pause]、[inhale]、[exhale]、[whisper]、',
+  '[angry]、[excited]、[sad]、[surprised]',
+  '',
+  'S2 的方括号内容属于自然语言描述，并非固定标签表；',
+  '但禁止输出冗长句子、中文括号提示、圆括号语气词、emo 属性、八维向量或 JSON。',
   '</VOICE_RULE>',
 ].join('\n');
 
@@ -158,11 +201,19 @@ export type ExtensionSettings = {
   indexTtsCharacterMappingPresets: IndexTtsCharacterMappingPreset[];
   indexTtsDurationFactor: number;
   indexTtsEmoWeight: number;
+  fishAudioApiKey: string;
+  fishAudioModel: FishAudioModel;
+  fishAudioReferenceId: string;
+  fishAudioSpeed: number;
+  fishAudioVolume: number;
+  fishAudioCharacterMappings: FishAudioCharacterMapping[];
+  fishAudioCharacterMappingPresets: FishAudioCharacterMappingPreset[];
   injectEnabled: boolean;
   injectDepth: number;
   injectRole: InjectRole;
   injectTemplate: string;
   indexTtsInjectTemplate: string;
+  fishAudioInjectTemplate: string;
 };
 
 export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
@@ -208,11 +259,19 @@ export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
   indexTtsCharacterMappingPresets: [],
   indexTtsDurationFactor: 1,
   indexTtsEmoWeight: 0.8,
+  fishAudioApiKey: '',
+  fishAudioModel: 's2.1-pro-free',
+  fishAudioReferenceId: '',
+  fishAudioSpeed: 1,
+  fishAudioVolume: 0,
+  fishAudioCharacterMappings: [],
+  fishAudioCharacterMappingPresets: [],
   injectEnabled: true,
   injectDepth: 1,
   injectRole: 'system',
   injectTemplate: DEFAULT_INJECT_TEMPLATE,
   indexTtsInjectTemplate: DEFAULT_INDEX_TTS_INJECT_TEMPLATE,
+  fishAudioInjectTemplate: DEFAULT_FISH_AUDIO_INJECT_TEMPLATE,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -245,7 +304,12 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number,
 }
 
 function asEngine(value: unknown): TtsEngineId {
-  if (value === 'minimax' || value === 'local_gsvi' || value === 'index_tts') {
+  if (
+    value === 'minimax' ||
+    value === 'local_gsvi' ||
+    value === 'index_tts' ||
+    value === 'fish_audio'
+  ) {
     return value;
   }
   return 'minimax';
@@ -255,6 +319,12 @@ function asIndexTtsLanguage(value: unknown): IndexTtsLanguage {
   return (INDEX_TTS_LANGUAGES as readonly string[]).includes(String(value))
     ? (value as IndexTtsLanguage)
     : DEFAULT_EXTENSION_SETTINGS.indexTtsLanguage;
+}
+
+function asFishAudioModel(value: unknown): FishAudioModel {
+  return (FISH_AUDIO_MODELS as readonly string[]).includes(String(value))
+    ? (value as FishAudioModel)
+    : DEFAULT_EXTENSION_SETTINGS.fishAudioModel;
 }
 
 function asRegion(value: unknown): MinimaxRegion {
@@ -373,6 +443,37 @@ function parseIndexTtsPresets(value: unknown): IndexTtsCharacterMappingPreset[] 
     .filter((item) => item.name);
 }
 
+function parseFishAudioMappings(value: unknown): FishAudioCharacterMapping[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter(isRecord)
+    .map((item) => ({
+      characterName: asString(item.characterName, '').trim(),
+      fishAudioReferenceId: asString(item.fishAudioReferenceId, '').trim(),
+    }))
+    .filter((item) => item.characterName || item.fishAudioReferenceId);
+}
+
+function parseFishAudioPresets(value: unknown): FishAudioCharacterMappingPreset[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter(isRecord)
+    .map((item) => ({
+      name: asString(item.name, '').trim(),
+      mappings: parseFishAudioMappings(item.mappings),
+    }))
+    .filter((item) => item.name);
+}
+
+function asFiniteNumber(value: unknown, fallback: number): number {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
 export function parseExtensionSettings(raw: unknown): ExtensionSettings {
   const source = isRecord(raw) ? raw : {};
   return {
@@ -418,6 +519,15 @@ export function parseExtensionSettings(raw: unknown): ExtensionSettings {
     indexTtsCharacterMappingPresets: parseIndexTtsPresets(source.indexTtsCharacterMappingPresets),
     indexTtsDurationFactor: clampNumber(source.indexTtsDurationFactor, 0.5, 2, 1),
     indexTtsEmoWeight: clampNumber(source.indexTtsEmoWeight, 0, 1, 0.8),
+    fishAudioApiKey: asString(source.fishAudioApiKey, ''),
+    fishAudioModel: asFishAudioModel(source.fishAudioModel),
+    fishAudioReferenceId: asString(source.fishAudioReferenceId, ''),
+    fishAudioSpeed: clampNumber(source.fishAudioSpeed, 0.5, 2, 1),
+    fishAudioVolume: asFiniteNumber(source.fishAudioVolume, 0),
+    fishAudioCharacterMappings: parseFishAudioMappings(source.fishAudioCharacterMappings),
+    fishAudioCharacterMappingPresets: parseFishAudioPresets(
+      source.fishAudioCharacterMappingPresets,
+    ),
     injectEnabled: asBoolean(source.injectEnabled, true),
     injectDepth: clampNumber(source.injectDepth, 0, 50, 1, true),
     injectRole: asInjectRole(source.injectRole),
@@ -425,5 +535,8 @@ export function parseExtensionSettings(raw: unknown): ExtensionSettings {
     indexTtsInjectTemplate:
       asString(source.indexTtsInjectTemplate, DEFAULT_INDEX_TTS_INJECT_TEMPLATE) ||
       DEFAULT_INDEX_TTS_INJECT_TEMPLATE,
+    fishAudioInjectTemplate:
+      asString(source.fishAudioInjectTemplate, DEFAULT_FISH_AUDIO_INJECT_TEMPLATE) ||
+      DEFAULT_FISH_AUDIO_INJECT_TEMPLATE,
   };
 }

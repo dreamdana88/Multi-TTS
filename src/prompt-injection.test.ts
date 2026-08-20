@@ -101,6 +101,24 @@ describe('prompt injection', () => {
     expect(gsvi_content).not.toContain('emo="名称:数值"');
   });
 
+  it('uses Fish Audio mappings and bracket prompt rules without contaminating other engines', () => {
+    const fish_content = buildInjectContent({
+      ...DEFAULT_EXTENSION_SETTINGS,
+      ttsEngine: 'fish_audio',
+      injectTemplate: 'MiniMax custom',
+      indexTtsInjectTemplate: 'Index custom',
+      fishAudioCharacterMappings: [{ characterName: '小鱼', fishAudioReferenceId: 'fish-model' }],
+    });
+    expect(fish_content).toContain('小鱼');
+    expect(fish_content).toContain('[laughing]');
+    expect(fish_content).toContain('Fish Audio S2');
+    expect(fish_content).toContain('禁止输出冗长句子');
+    expect(fish_content).not.toContain('MiniMax custom');
+    expect(fish_content).not.toContain('Index custom');
+    expect(fish_content).not.toContain('emo="名称:数值"');
+    expect(fish_content).not.toContain('(laughs), (chuckle)');
+  });
+
   it('applies IN_CHAT injection through the official host and can clear it', () => {
     const host = {
       setExtensionPrompt: vi.fn(),

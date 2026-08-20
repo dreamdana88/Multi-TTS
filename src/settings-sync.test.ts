@@ -43,6 +43,12 @@ describe('planSettingsSync', () => {
       syncInjection: true,
       refreshDecorations: false,
     });
+    expect(
+      planSettingsSync(previous, { ...previous, fishAudioInjectTemplate: 'fish new' }),
+    ).toEqual({
+      syncInjection: true,
+      refreshDecorations: false,
+    });
   });
 
   it('refreshes decorations when enablement, engine, or mappings change', () => {
@@ -91,6 +97,18 @@ describe('planSettingsSync', () => {
         ttsEngine: 'index_tts',
         indexTtsCharacterMappings: [
           { characterName: '爱丽丝', indexTtsVoiceId: 'mori', indexTtsLanguage: 'ZH' },
+        ],
+      }),
+    ).toEqual({
+      syncInjection: true,
+      refreshDecorations: true,
+    });
+    expect(
+      planSettingsSync(previous, {
+        ...previous,
+        ttsEngine: 'fish_audio',
+        fishAudioCharacterMappings: [
+          { characterName: '爱丽丝', fishAudioReferenceId: 'fish-model' },
         ],
       }),
     ).toEqual({

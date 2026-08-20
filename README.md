@@ -2,7 +2,7 @@
 
 SillyTavern 第三方前端扩展。目标是把原来的酒馆助手脚本，迁移成可以通过 Git 仓库地址安装、启停和更新的公开插件。
 
-当前版本是 **0.1.0**：已使用 SillyTavern 1.18.0 官方扩展设置、原生消息事件和 `setExtensionPrompt` 接入聊天。助手消息里的 `<say>` 台词会变成可点击片段。设置面板可切换 MiniMax / Local-GSVI，并维护角色映射。
+当前版本是 **0.1.0**：已使用 SillyTavern 1.18.0 官方扩展设置、原生消息事件和 `setExtensionPrompt` 接入聊天。助手消息里的 `<say>` 台词会变成可点击片段。设置面板可切换 MiniMax / Local-GSVI/index tts/fish audio，并维护角色映射。
 
 最低 SillyTavern 版本：**1.18.0**。
 

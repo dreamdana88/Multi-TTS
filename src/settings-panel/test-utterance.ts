@@ -19,6 +19,12 @@ const INDEX_TTS_TEXT = {
   en: 'Hello, this is an IndexTTS test voice.',
 } as const;
 
+const FISH_AUDIO_TEXT = {
+  ja: 'こんにちは、これは Fish Audio のテスト音声です。',
+  zh: '你好，这是 Fish Audio 的测试语音。',
+  en: 'Hello, this is a Fish Audio test voice.',
+} as const;
+
 export const GSVI_TEXT_LANG_OPTIONS = [
   '中文',
   '英语',
@@ -48,6 +54,9 @@ export function testUtterance(engine: TtsEngineId, language: TestLanguage): stri
   }
   if (engine === 'index_tts') {
     return INDEX_TTS_TEXT[language];
+  }
+  if (engine === 'fish_audio') {
+    return FISH_AUDIO_TEXT[language];
   }
   return MINIMAX_TEXT[language];
 }

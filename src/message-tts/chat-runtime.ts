@@ -293,7 +293,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
 
     const prepared = say_segments.map((segment) => ({
       ...segment,
-      displayText: normalizeSayTextForDisplay(segment.text),
+      displayText: normalizeSayTextForDisplay(segment.text, current.ttsEngine),
       ttsText: buildTtsInputText(segment.text, current.ttsEngine),
     }));
     const prefetch_tasks: Array<() => Promise<void>> = [];

@@ -156,7 +156,7 @@ describe('createExtensionRuntime', () => {
     expect(panel.unmount).toHaveBeenCalledTimes(1);
     expect(document.getElementById(EXTENSION_ROOT_ID)).toBeNull();
     expect(runtime.isActive()).toBe(false);
-    expect(stored.value).toMatchObject({ schemaVersion: 2, enabled: false });
+    expect(stored.value).toMatchObject({ schemaVersion: 3, enabled: false });
   });
 
   it('cleans settings on clean and delete', () => {

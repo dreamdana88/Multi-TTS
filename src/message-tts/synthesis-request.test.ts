@@ -105,6 +105,32 @@ describe('resolveSegmentVoice', () => {
       language: 'JA',
     });
   });
+
+  it('uses the last complete Fish Audio mapping and never falls back for an unmapped char', () => {
+    const settings = {
+      ...DEFAULT_EXTENSION_SETTINGS,
+      ttsEngine: 'fish_audio' as const,
+      fishAudioApiKey: 'fish-secret',
+      fishAudioReferenceId: 'default-model',
+      fishAudioCharacterMappings: [
+        { characterName: '爱丽丝', fishAudioReferenceId: 'first-model' },
+        { characterName: '爱丽丝', fishAudioReferenceId: 'last-model' },
+        { characterName: '爱丽丝', fishAudioReferenceId: '' },
+      ],
+    };
+    expect(resolveSegmentVoice(settings, '爱丽丝')).toMatchObject({
+      engine: 'fish_audio',
+      fishAudioReferenceId: 'last-model',
+    });
+    expect(buildSynthesisRequest(settings, '[laughing]你好', '爱丽丝')).toMatchObject({
+      engine: 'fish_audio',
+      referenceId: 'last-model',
+      text: '[laughing]你好',
+      speed: 1,
+      volume: 0,
+    });
+    expect(buildSynthesisRequest(settings, '出去', '未知')).toBeNull();
+  });
 });
 
 describe('hasCharacterMapping', () => {
@@ -138,6 +164,28 @@ describe('hasCharacterMapping', () => {
           characterMappings: [{ characterName: '爱丽丝', minimaxVoiceId: 'v1' }],
         },
         '爱丽丝',
+      ),
+    ).toBe(false);
+    expect(
+      hasCharacterMapping(
+        {
+          ...DEFAULT_EXTENSION_SETTINGS,
+          ttsEngine: 'fish_audio',
+          fishAudioCharacterMappings: [
+            { characterName: '爱丽丝', fishAudioReferenceId: 'fish-voice' },
+          ],
+        },
+        '爱丽丝',
+      ),
+    ).toBe(true);
+    expect(
+      hasCharacterMapping(
+        {
+          ...DEFAULT_EXTENSION_SETTINGS,
+          ttsEngine: 'fish_audio',
+          fishAudioReferenceId: 'default-fish-voice',
+        },
+        '未知',
       ),
     ).toBe(false);
   });
@@ -288,6 +336,19 @@ describe('buildSynthesisRequest', () => {
         indexTtsBaseUrl: 'http://127.0.0.1:7860',
       }),
     ).toMatchObject({ engine: 'index_tts', baseUrl: 'http://127.0.0.1:7860' });
+    expect(
+      buildVoiceCatalogRequest({
+        ...DEFAULT_EXTENSION_SETTINGS,
+        ttsEngine: 'fish_audio',
+        fishAudioApiKey: 'fish-secret',
+        fishAudioReferenceId: 'public-model',
+      }),
+    ).toMatchObject({
+      engine: 'fish_audio',
+      apiKey: 'fish-secret',
+      model: 's2.1-pro-free',
+      referenceId: 'public-model',
+    });
   });
 
   it('returns null when MiniMax required fields are missing', () => {
@@ -398,6 +459,66 @@ describe('buildSynthesisRequest', () => {
       await createAudioCacheKey(
         buildAudioCacheKeyInput({ ...settings, indexTtsEmoWeight: 0.4 }, '你好', '爱丽丝'),
       ),
+    ).not.toBe(base);
+  });
+
+  it('builds Fish Audio cache keys without API keys and scopes all audio-changing fields', async () => {
+    const settings = {
+      ...DEFAULT_EXTENSION_SETTINGS,
+      ttsEngine: 'fish_audio' as const,
+      fishAudioApiKey: 'fish-secret',
+      fishAudioModel: 's2.1-pro-free' as const,
+      fishAudioReferenceId: 'default-model',
+      fishAudioSpeed: 1,
+      fishAudioVolume: 0,
+      fishAudioCharacterMappings: [
+        { characterName: '爱丽丝', fishAudioReferenceId: 'mapped-model' },
+      ],
+    };
+    const input = buildAudioCacheKeyInput(settings, '[laughing]你好', '爱丽丝');
+    expect(input).toMatchObject({
+      engine: 'fish_audio',
+      text: '[laughing]你好',
+      fishAudio: {
+        origin: 'https://api.fish.audio',
+        model: 's2.1-pro-free',
+        referenceId: 'mapped-model',
+        speed: 1,
+        volume: 0,
+        format: 'mp3',
+      },
+    });
+    const base = await createAudioCacheKey(input);
+    expect(
+      await createAudioCacheKey(
+        buildAudioCacheKeyInput(
+          { ...settings, fishAudioApiKey: 'another-secret' },
+          '[laughing]你好',
+          '爱丽丝',
+        ),
+      ),
+    ).toBe(base);
+    for (const changed of [
+      { fishAudioModel: 's2.1-pro' as const },
+      { fishAudioSpeed: 1.2 },
+      { fishAudioVolume: -2 },
+    ]) {
+      expect(
+        await createAudioCacheKey(
+          buildAudioCacheKeyInput({ ...settings, ...changed }, '[laughing]你好', '爱丽丝'),
+        ),
+      ).not.toBe(base);
+    }
+    expect(
+      await createAudioCacheKey(
+        buildAudioCacheKeyInput(
+          { ...settings, fishAudioReferenceId: 'other-default' },
+          '[laughing]你好',
+        ),
+      ),
+    ).not.toBe(await createAudioCacheKey(buildAudioCacheKeyInput(settings, '[laughing]你好')));
+    expect(
+      await createAudioCacheKey(buildAudioCacheKeyInput(settings, '[sigh]你好', '爱丽丝')),
     ).not.toBe(base);
   });
 });

@@ -1,7 +1,8 @@
 import { normalizeCacheOrigin, type AudioCacheKeyInput } from '../audio-cache';
-import { INDEX_TTS_MODEL } from '../engines';
+import { FISH_AUDIO_API_ORIGIN, INDEX_TTS_MODEL } from '../engines';
 import type { ExtensionSettings } from '../extension-settings';
 import type {
+  FishAudioSynthesisRequest,
   IndexTtsEmotionMap,
   IndexTtsSynthesisRequest,
   LocalGsviSynthesisRequest,
@@ -18,6 +19,7 @@ export type ResolvedVoice = {
   gsviEmotion?: string;
   indexTtsVoiceId?: string;
   indexTtsLanguage?: ExtensionSettings['indexTtsLanguage'];
+  fishAudioReferenceId?: string;
 };
 
 function lastMatching<T>(items: T[], matches: (item: T) => boolean): T | undefined {
@@ -60,6 +62,13 @@ function isCompleteIndexTtsMapping(
   );
 }
 
+function isCompleteFishAudioMapping(
+  item: ExtensionSettings['fishAudioCharacterMappings'][number],
+  character: string,
+) {
+  return item.characterName.trim() === character && Boolean(item.fishAudioReferenceId.trim());
+}
+
 export function hasCharacterMapping(
   settings: ExtensionSettings,
   segment_char: string | undefined,
@@ -72,6 +81,13 @@ export function hasCharacterMapping(
     return Boolean(
       lastMatching(settings.indexTtsCharacterMappings, (item) =>
         isCompleteIndexTtsMapping(item, character),
+      ),
+    );
+  }
+  if (settings.ttsEngine === 'fish_audio') {
+    return Boolean(
+      lastMatching(settings.fishAudioCharacterMappings, (item) =>
+        isCompleteFishAudioMapping(item, character),
       ),
     );
   }
@@ -103,6 +119,16 @@ export function resolveSegmentVoice(
       engine: 'index_tts',
       indexTtsVoiceId: mapping?.indexTtsVoiceId.trim() || settings.indexTtsVoiceId.trim(),
       indexTtsLanguage: mapping?.indexTtsLanguage || settings.indexTtsLanguage,
+    };
+  }
+  if (settings.ttsEngine === 'fish_audio') {
+    const mapping = lastMatching(settings.fishAudioCharacterMappings, (item) =>
+      isCompleteFishAudioMapping(item, character),
+    );
+    return {
+      engine: 'fish_audio',
+      fishAudioReferenceId:
+        mapping?.fishAudioReferenceId.trim() || settings.fishAudioReferenceId.trim(),
     };
   }
   if (settings.ttsEngine === 'local_gsvi') {
@@ -156,6 +182,26 @@ export function buildSynthesisRequest(
     if (emotion && Object.keys(emotion).length > 0) {
       request.emotion = emotion as IndexTtsEmotionMap;
     }
+    return request;
+  }
+  if (settings.ttsEngine === 'fish_audio' && voice.engine === 'fish_audio') {
+    if (
+      !settings.fishAudioApiKey.trim() ||
+      !voice.fishAudioReferenceId ||
+      !settings.fishAudioModel
+    ) {
+      return null;
+    }
+    const request: FishAudioSynthesisRequest = {
+      engine: 'fish_audio',
+      text,
+      apiKey: settings.fishAudioApiKey,
+      model: settings.fishAudioModel,
+      referenceId: voice.fishAudioReferenceId,
+      speed: settings.fishAudioSpeed,
+      volume: settings.fishAudioVolume,
+      timeoutMs: settings.requestTimeoutMs,
+    };
     return request;
   }
   if (settings.ttsEngine === 'local_gsvi' && voice.engine === 'local_gsvi') {
@@ -225,6 +271,21 @@ export function buildVoiceCatalogRequest(settings: ExtensionSettings): Synthesis
       timeoutMs: settings.requestTimeoutMs,
     };
   }
+  if (settings.ttsEngine === 'fish_audio') {
+    if (!settings.fishAudioApiKey.trim()) {
+      return null;
+    }
+    return {
+      engine: 'fish_audio',
+      text: 'catalog',
+      apiKey: settings.fishAudioApiKey,
+      model: settings.fishAudioModel,
+      referenceId: settings.fishAudioReferenceId.trim(),
+      speed: settings.fishAudioSpeed,
+      volume: settings.fishAudioVolume,
+      timeoutMs: settings.requestTimeoutMs,
+    };
+  }
   if (settings.ttsEngine === 'local_gsvi') {
     if (!settings.localGsviBaseUrl.trim()) {
       return null;
@@ -285,6 +346,20 @@ export function buildAudioCacheKeyInput(
         durationFactor: settings.indexTtsDurationFactor,
         emoWeight: settings.indexTtsEmoWeight,
         emotion: canonicalizeSayEmotion(emotion),
+      },
+    };
+  }
+  if (settings.ttsEngine === 'fish_audio') {
+    return {
+      text,
+      engine: 'fish_audio',
+      fishAudio: {
+        origin: normalizeCacheOrigin(FISH_AUDIO_API_ORIGIN),
+        model: settings.fishAudioModel,
+        referenceId: voice.fishAudioReferenceId ?? '',
+        speed: settings.fishAudioSpeed,
+        volume: settings.fishAudioVolume,
+        format: 'mp3',
       },
     };
   }
