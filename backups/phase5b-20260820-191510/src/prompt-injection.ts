@@ -44,39 +44,9 @@ export function buildRoleMappingRule(settings: ExtensionSettings): string {
   ].join('\n');
 }
 
-export const INDEX_TTS_INJECT_TEMPLATE = [
-  '<VOICE_RULE>',
-  '请仅对角色：${mapped_characters} 的“直接台词”添加 <say char="角色名">...</say> 标签。',
-  '角色映射名单：${mapped_characters}',
-  '若说话者在映射名单中，char 必须与映射角色名完全一致。',
-  '若说话者不在映射名单中，也必须填写真实说话角色名，char 不可省略。',
-  '<say char="角色名">不要填<user>。',
-  '不要给旁白、动作描写、心理活动、双语的中文翻译内容加 <say> 标签。',
-  '不要输出空的 <say></say>，不要嵌套 <say> 标签。',
-  '禁止括号语气词（如 (laughs)、(sighs)、(softly)）。',
-  '日常、闲聊、平静叙述省略 emo，只写：<say char="角色名">台词</say>',
-  '仅当本句有明显情绪变化时才加 emo="名称:数值"。每句独立判断；不要沿用上一句，也不要给日常句补“平静”。',
-  '合法名称仅限：喜、怒、哀、惧、厌恶、低落、惊喜、平静。',
-  '1 至 3 个不同名称；一般只用一种，确有复合情绪最多两至三种。多项用半角逗号分隔。char 与 emo 属性顺序不限。',
-  '每个数值必须是大于 0、不超过 1.0 的有限数字。轻微 0.10–0.35，明显 0.35–0.60，0.80 以上只用于重大爆发。',
-  '禁止：八位数组、英文模板名、emotion/intensity 属性、零值占位、重复名称、无意义堆叠。',
-  '示例:',
-  '<say char="角色名">今天要去哪里？</say>',
-  '<say char="角色名" emo="怒:0.35">别骗我。</say>',
-  '<say char="角色名" emo="哀:0.30,低落:0.15">我不想再等了。</say>',
-  '</VOICE_RULE>',
-].join('\n');
-
-function templateForEngine(settings: ExtensionSettings): string {
-  if (settings.ttsEngine === 'index_tts') {
-    return INDEX_TTS_INJECT_TEMPLATE;
-  }
-  return settings.injectTemplate;
-}
-
 export function buildInjectContent(settings: ExtensionSettings): string {
   const mapped_characters = resolveMappedCharacters(settings).join('、') || '（未配置角色映射）';
-  const template_content = templateForEngine(settings)
+  const template_content = settings.injectTemplate
     .replaceAll('${target_characters}', mapped_characters)
     .replaceAll('${mapped_characters}', mapped_characters);
   return `${template_content}\n\n${buildRoleMappingRule(settings)}`;

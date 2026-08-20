@@ -2,13 +2,11 @@ import { normalizeCacheOrigin, type AudioCacheKeyInput } from '../audio-cache';
 import { INDEX_TTS_MODEL } from '../engines';
 import type { ExtensionSettings } from '../extension-settings';
 import type {
-  IndexTtsEmotionMap,
   IndexTtsSynthesisRequest,
   LocalGsviSynthesisRequest,
   MinimaxSynthesisRequest,
   SynthesisRequest,
 } from '../engines/contract';
-import { canonicalizeSayEmotion, type SayEmotion } from './say-parser';
 
 export type ResolvedVoice = {
   engine: ExtensionSettings['ttsEngine'];
@@ -133,7 +131,6 @@ export function buildSynthesisRequest(
   settings: ExtensionSettings,
   text: string,
   segment_char?: string,
-  emotion?: SayEmotion,
 ): SynthesisRequest | null {
   if (!hasCharacterMapping(settings, segment_char)) {
     return null;
@@ -151,9 +148,6 @@ export function buildSynthesisRequest(
       language: voice.indexTtsLanguage,
       timeoutMs: settings.requestTimeoutMs,
     };
-    if (emotion && Object.keys(emotion).length > 0) {
-      request.emotion = emotion as IndexTtsEmotionMap;
-    }
     return request;
   }
   if (settings.ttsEngine === 'local_gsvi' && voice.engine === 'local_gsvi') {
@@ -265,7 +259,6 @@ export function buildAudioCacheKeyInput(
   settings: ExtensionSettings,
   text: string,
   segment_char?: string,
-  emotion?: SayEmotion,
 ): AudioCacheKeyInput {
   const voice = resolveSegmentVoice(settings, segment_char);
   if (settings.ttsEngine === 'index_tts') {
@@ -278,7 +271,6 @@ export function buildAudioCacheKeyInput(
         voiceId: voice.indexTtsVoiceId ?? '',
         language: voice.indexTtsLanguage ?? settings.indexTtsLanguage,
         format: 'wav',
-        emotion: canonicalizeSayEmotion(emotion),
       },
     };
   }

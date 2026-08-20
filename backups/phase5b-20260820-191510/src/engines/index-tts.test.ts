@@ -221,41 +221,8 @@ describe('IndexTTS speech', () => {
       response_format: 'wav',
       language: 'ZH',
     });
-    expect(
-      buildIndexTtsSpeechPayload(sampleRequest({ emotion: { 怒: 0.35, 厌恶: 0.15 } })),
-    ).toEqual({
-      model: 'IndexTTS-2.5',
-      input: '要生成的台词',
-      voice: 'mori',
-      response_format: 'wav',
-      language: 'ZH',
-      emotion: { 怒: 0.35, 厌恶: 0.15 },
-    });
-    expect(
-      Object.keys(buildIndexTtsSpeechPayload(sampleRequest({ emotion: undefined }))).sort(),
-    ).toEqual(['input', 'language', 'model', 'response_format', 'voice']);
     const blob = await createIndexTtsAdapter({ fetchImpl: fetch_impl }).synthesize(sampleRequest());
     expect(blob.size).toBe(4);
-    expect(fetch_impl).toHaveBeenCalledTimes(1);
-  });
-
-  it('adds emotion only when a sparse map is present', async () => {
-    const fetch_impl = vi.fn(async (_url: string, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      expect(body.emotion).toEqual({ 怒: 0.35, 厌恶: 0.15 });
-      expect(Object.keys(body).sort()).toEqual([
-        'emotion',
-        'input',
-        'language',
-        'model',
-        'response_format',
-        'voice',
-      ]);
-      return wavResponse();
-    });
-    await createIndexTtsAdapter({ fetchImpl: fetch_impl }).synthesize(
-      sampleRequest({ emotion: { 怒: 0.35, 厌恶: 0.15 } }),
-    );
     expect(fetch_impl).toHaveBeenCalledTimes(1);
   });
 

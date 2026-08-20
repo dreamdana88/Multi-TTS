@@ -24,7 +24,6 @@ import {
   removeMessageDecorations,
   type EnsureAudioResult,
 } from './message-decoration';
-import type { SayEmotion } from './say-parser';
 import {
   buildAudioCacheKeyInput,
   buildSynthesisRequest,
@@ -143,17 +142,16 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     swipe_id: number,
     tts_text: string,
     segment_char?: string,
-    emotion?: SayEmotion,
   ): Promise<EnsureAudioResult> {
     const started = beginInflight(key, message_id, swipe_id);
     try {
       const current = settings();
-      const request = buildSynthesisRequest(current, tts_text, segment_char, emotion);
+      const request = buildSynthesisRequest(current, tts_text, segment_char);
       if (!request) {
         return { blob: null };
       }
       request.signal = started.controller.signal;
-      const cache_input = buildAudioCacheKeyInput(current, tts_text, segment_char, emotion);
+      const cache_input = buildAudioCacheKeyInput(current, tts_text, segment_char);
       const cache_key = await createAudioCacheKey(cache_input);
       if (!isCurrentInflight(key, started.token) || started.controller.signal.aborted) {
         return { cancelled: true };
@@ -317,14 +315,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
       {
         ensureAudio: async (segment, _display, tts_text) => {
           const key = `${message_id}:${swipe_id}:${segment.index}`;
-          return await ensureAudio(
-            key,
-            message_id,
-            swipe_id,
-            tts_text,
-            segment.char,
-            segment.emotion,
-          );
+          return await ensureAudio(key, message_id, swipe_id, tts_text, segment.char);
         },
         downloadAudio(blob, id, index) {
           downloadBlob(blob, buildAudioFilename(id, index));
@@ -339,14 +330,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
         prefetch_tasks.push(async () => {
           const key = `${message_id}:${swipe_id}:${segment.index}`;
           try {
-            await ensureAudio(
-              key,
-              message_id,
-              swipe_id,
-              segment.ttsText,
-              segment.char,
-              segment.emotion,
-            );
+            await ensureAudio(key, message_id, swipe_id, segment.ttsText, segment.char);
           } catch {
             // prefetch failures stay on the segment when the user clicks
           }

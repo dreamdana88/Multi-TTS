@@ -10,7 +10,6 @@ type SynthesisCall = {
   text: string;
   voiceId?: string;
   signal?: AbortSignal;
-  emotion?: Record<string, number>;
 };
 
 const { cache_store, synthesize, playback_stop, download_blob } = vi.hoisted(() => ({
@@ -767,47 +766,6 @@ describe('createChatRuntime', () => {
     bob?.querySelector<HTMLElement>('.tavern-multi-tts-action')?.click();
     await flushTimers();
     expect(download_blob.mock.calls.map((call) => call[0])).toEqual([blob_a, blob_b]);
-  });
-
-  it('keeps IndexTTS segment emotions bound through prefetch, play, and download', async () => {
-    vi.useFakeTimers();
-    const chat: ChatState = {
-      1: {
-        mes: [
-          '<say char="爱丽丝">普通一句</say>',
-          '<say char="爱丽丝" emo="怒:0.35">生气一句</say>',
-          '<say char="爱丽丝">又普通</say>',
-        ].join(''),
-        is_user: false,
-        swipe_id: 0,
-      },
-    };
-    const { host, listeners, settings } = createHost({}, chat);
-    Object.assign(settings, indexTtsMappedSettings(), { prefetchMode: 'auto_all' as const });
-    const blob_plain = new Blob(['plain'], { type: 'audio/wav' });
-    const blob_angry = new Blob(['angry'], { type: 'audio/wav' });
-    synthesize.mockImplementation(async (request) =>
-      request.emotion?.怒 ? blob_angry : blob_plain,
-    );
-    runtime = createChatRuntime(host);
-    runtime.start();
-    mountChat(messageHtml(1, '普通一句生气一句又普通', 0));
-    emit(listeners, 'character_message_rendered', 1);
-    await flushTimers();
-    await vi.waitFor(() => expect(synthesize).toHaveBeenCalledTimes(3));
-    expect(synthesize.mock.calls.map((call) => call[0].emotion)).toEqual([
-      undefined,
-      { 怒: 0.35 },
-      undefined,
-    ]);
-
-    const nodes = Array.from(document.querySelectorAll<HTMLElement>(`.${SEGMENT_CLASS}`));
-    nodes[1]?.click();
-    await flushTimers();
-    expect(vi.mocked(playAudioBlob).mock.calls.at(-1)?.[0]).toBe(blob_angry);
-    nodes[1]?.querySelector<HTMLElement>('.tavern-multi-tts-action')?.click();
-    await flushTimers();
-    expect(download_blob.mock.calls.at(-1)?.[0]).toBe(blob_angry);
   });
 
   it('does not write a late IndexTTS swipe result back onto the old control', async () => {

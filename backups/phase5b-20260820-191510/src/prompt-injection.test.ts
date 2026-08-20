@@ -42,44 +42,6 @@ describe('prompt injection', () => {
     expect(content).toContain('爱丽丝');
     expect(content).toContain('<VOICE_CHAR_RULE>');
     expect(content).not.toContain('${mapped_characters}');
-    expect(content).toContain('(laughs)');
-    expect(content).not.toContain('emo="名称:数值"');
-  });
-
-  it('uses IndexTTS emo rules only for the IndexTTS engine', () => {
-    const index_content = buildInjectContent({
-      ...DEFAULT_EXTENSION_SETTINGS,
-      ttsEngine: 'index_tts',
-      injectTemplate: '自定义 MiniMax 模板 ${mapped_characters}',
-      indexTtsCharacterMappings: [
-        { characterName: '水无濑寻', indexTtsVoiceId: 'mori', indexTtsLanguage: 'ZH' },
-      ],
-    });
-    expect(index_content).toContain('水无濑寻');
-    expect(index_content).toContain('日常、闲聊、平静叙述省略 emo');
-    expect(index_content).toContain('喜、怒、哀、惧、厌恶、低落、惊喜、平静');
-    expect(index_content).toContain('emo="怒:0.35"');
-    expect(index_content).toContain('哀:0.30,低落:0.15');
-    expect(index_content).toContain('禁止：八位数组、英文模板名、emotion/intensity 属性');
-    expect(index_content).toContain('每句独立判断');
-    expect(index_content).toContain('禁止括号语气词');
-    expect(index_content).not.toContain('(laughs), (chuckle)');
-    expect(index_content).not.toContain('自定义 MiniMax 模板');
-
-    const gsvi_content = buildInjectContent({
-      ...DEFAULT_EXTENSION_SETTINGS,
-      ttsEngine: 'local_gsvi',
-      gsviCharacterMappings: [
-        {
-          characterName: '爱丽丝',
-          gsviVoiceId: 'mori|v2Pro',
-          gsviLanguage: 'ja',
-          gsviEmotion: 'neutral',
-        },
-      ],
-    });
-    expect(gsvi_content).toContain('(laughs)');
-    expect(gsvi_content).not.toContain('emo="名称:数值"');
   });
 
   it('applies IN_CHAT injection through the official host and can clear it', () => {

@@ -57,10 +57,6 @@ export type LocalGsviSynthesisRequest = {
   signal?: AbortSignal;
 };
 
-export type IndexTtsEmotionMap = Partial<
-  Record<'喜' | '怒' | '哀' | '惧' | '厌恶' | '低落' | '惊喜' | '平静', number>
->;
-
 export type IndexTtsSynthesisRequest = {
   engine: 'index_tts';
   text: string;
@@ -69,7 +65,6 @@ export type IndexTtsSynthesisRequest = {
   language: IndexTtsLanguage;
   timeoutMs: number;
   signal?: AbortSignal;
-  emotion?: IndexTtsEmotionMap;
 };
 
 export type SynthesisRequest =

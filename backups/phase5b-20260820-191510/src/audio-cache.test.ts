@@ -126,23 +126,6 @@ describe('createAudioCacheKey', () => {
     ).not.toBe(same);
     expect(same).not.toBe(await createAudioCacheKey(sampleKeyInput()));
     expect(same).not.toBe(await createAudioCacheKey(gsviKeyInput('http://127.0.0.1:7860')));
-    expect(
-      await createAudioCacheKey({
-        ...base,
-        indexTts: { ...base.indexTts, emotion: '喜:0.35,平静:0.1' },
-      }),
-    ).toBe(
-      await createAudioCacheKey({
-        ...base,
-        indexTts: { ...base.indexTts, emotion: '喜:0.35,平静:0.1' },
-      }),
-    );
-    expect(
-      await createAudioCacheKey({
-        ...base,
-        indexTts: { ...base.indexTts, emotion: '怒:0.35' },
-      }),
-    ).not.toBe(same);
   });
 });
 

@@ -62,7 +62,6 @@ export type AudioCacheKeyInput = {
     voiceId: string;
     language: string;
     format: 'wav';
-    emotion?: string;
   };
 };
 
@@ -135,7 +134,6 @@ function scopedCacheFields(input: AudioCacheKeyInput) {
     voiceId: input.indexTts?.voiceId ?? '',
     language: input.indexTts?.language ?? '',
     format: input.indexTts?.format ?? 'wav',
-    emotion: input.indexTts?.emotion ?? '',
   };
 }
 

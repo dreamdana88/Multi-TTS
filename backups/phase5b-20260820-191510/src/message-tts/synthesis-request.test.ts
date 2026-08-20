@@ -241,27 +241,6 @@ describe('buildSynthesisRequest', () => {
     });
     expect(request && 'model' in request ? request.model : undefined).toBeUndefined();
     expect(request && 'speed' in request ? request.speed : undefined).toBeUndefined();
-    expect(request && 'emotion' in request ? request.emotion : undefined).toBeUndefined();
-  });
-
-  it('adds IndexTTS emotion only for a valid sparse map', () => {
-    const settings = {
-      ...DEFAULT_EXTENSION_SETTINGS,
-      ttsEngine: 'index_tts' as const,
-      indexTtsBaseUrl: 'http://127.0.0.1:7860',
-      indexTtsVoiceId: 'mori',
-      indexTtsLanguage: 'ZH' as const,
-      indexTtsCharacterMappings: [
-        { characterName: '爱丽丝', indexTtsVoiceId: 'mori', indexTtsLanguage: 'ZH' as const },
-      ],
-    };
-    const plain = buildSynthesisRequest(settings, '你好', '爱丽丝');
-    expect(plain && 'emotion' in plain ? plain.emotion : undefined).toBeUndefined();
-    const with_emo = buildSynthesisRequest(settings, '你好', '爱丽丝', { 怒: 0.35 });
-    expect(with_emo).toMatchObject({
-      engine: 'index_tts',
-      emotion: { 怒: 0.35 },
-    });
   });
 
   it('builds a catalog request without requiring a mapped character', () => {
@@ -314,7 +293,7 @@ describe('buildSynthesisRequest', () => {
     expect(request && 'apiKey' in request ? request.apiKey : '').toBe('k');
   });
 
-  it('builds IndexTTS cache keys from text, origin, voice, language, and emotion', async () => {
+  it('builds IndexTTS cache keys from text, origin, voice, and language only', async () => {
     const settings = {
       ...DEFAULT_EXTENSION_SETTINGS,
       ttsEngine: 'index_tts' as const,
@@ -376,17 +355,5 @@ describe('buildSynthesisRequest', () => {
         ),
       ),
     ).not.toBe(base);
-    const angry = await createAudioCacheKey(
-      buildAudioCacheKeyInput(settings, '你好', '爱丽丝', { 怒: 0.35 }),
-    );
-    const reversed = await createAudioCacheKey(
-      buildAudioCacheKeyInput(settings, '你好', '爱丽丝', { 平静: 0.1, 喜: 0.35 }),
-    );
-    const ordered = await createAudioCacheKey(
-      buildAudioCacheKeyInput(settings, '你好', '爱丽丝', { 喜: 0.35, 平静: 0.1 }),
-    );
-    expect(angry).not.toBe(base);
-    expect(reversed).toBe(ordered);
-    expect(reversed).not.toBe(angry);
   });
 });

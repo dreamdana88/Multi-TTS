@@ -26,24 +26,13 @@ export function isIndexTtsLanguage(value: unknown): value is IndexTtsLanguage {
 }
 
 export function buildIndexTtsSpeechPayload(request: IndexTtsSynthesisRequest) {
-  const payload: {
-    model: typeof INDEX_TTS_MODEL;
-    input: string;
-    voice: string;
-    response_format: 'wav';
-    language: IndexTtsLanguage;
-    emotion?: NonNullable<IndexTtsSynthesisRequest['emotion']>;
-  } = {
+  return {
     model: INDEX_TTS_MODEL,
     input: request.text,
     voice: request.voiceId.trim(),
-    response_format: 'wav',
+    response_format: 'wav' as const,
     language: request.language,
   };
-  if (request.emotion && Object.keys(request.emotion).length > 0) {
-    payload.emotion = request.emotion;
-  }
-  return payload;
 }
 
 function assertIndexTtsRequest(request: IndexTtsSynthesisRequest) {
@@ -234,7 +223,6 @@ export function createIndexTtsAdapter(options?: { fetchImpl?: FetchLike }): TtsE
         voiceId: payload.voice,
         language: payload.language,
         model: payload.model,
-        emotion: payload.emotion ? Object.keys(payload.emotion) : undefined,
         text: request.text,
       });
       const response = await fetchWithTimeout(
