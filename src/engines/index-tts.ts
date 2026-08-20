@@ -32,6 +32,8 @@ export function buildIndexTtsSpeechPayload(request: IndexTtsSynthesisRequest) {
     voice: string;
     response_format: 'wav';
     language: IndexTtsLanguage;
+    duration_factor: number;
+    emo_weight: number;
     emotion?: NonNullable<IndexTtsSynthesisRequest['emotion']>;
   } = {
     model: INDEX_TTS_MODEL,
@@ -39,6 +41,8 @@ export function buildIndexTtsSpeechPayload(request: IndexTtsSynthesisRequest) {
     voice: request.voiceId.trim(),
     response_format: 'wav',
     language: request.language,
+    duration_factor: request.durationFactor,
+    emo_weight: request.emoWeight,
   };
   if (request.emotion && Object.keys(request.emotion).length > 0) {
     payload.emotion = request.emotion;
@@ -234,6 +238,8 @@ export function createIndexTtsAdapter(options?: { fetchImpl?: FetchLike }): TtsE
         voiceId: payload.voice,
         language: payload.language,
         model: payload.model,
+        durationFactor: payload.duration_factor,
+        emoWeight: payload.emo_weight,
         emotion: payload.emotion ? Object.keys(payload.emotion) : undefined,
         text: request.text,
       });

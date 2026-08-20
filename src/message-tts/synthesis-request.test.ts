@@ -238,9 +238,10 @@ describe('buildSynthesisRequest', () => {
       voiceId: 'default-voice',
       language: 'EN',
       baseUrl: 'http://127.0.0.1:7860',
+      durationFactor: 1,
+      emoWeight: 0.8,
     });
     expect(request && 'model' in request ? request.model : undefined).toBeUndefined();
-    expect(request && 'speed' in request ? request.speed : undefined).toBeUndefined();
     expect(request && 'emotion' in request ? request.emotion : undefined).toBeUndefined();
   });
 
@@ -388,5 +389,15 @@ describe('buildSynthesisRequest', () => {
     expect(angry).not.toBe(base);
     expect(reversed).toBe(ordered);
     expect(reversed).not.toBe(angry);
+    expect(
+      await createAudioCacheKey(
+        buildAudioCacheKeyInput({ ...settings, indexTtsDurationFactor: 1.2 }, '你好', '爱丽丝'),
+      ),
+    ).not.toBe(base);
+    expect(
+      await createAudioCacheKey(
+        buildAudioCacheKeyInput({ ...settings, indexTtsEmoWeight: 0.4 }, '你好', '爱丽丝'),
+      ),
+    ).not.toBe(base);
   });
 });

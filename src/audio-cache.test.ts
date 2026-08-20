@@ -101,6 +101,8 @@ describe('createAudioCacheKey', () => {
         voiceId: 'mori',
         language: 'ZH',
         format: 'wav' as const,
+        durationFactor: 1,
+        emoWeight: 0.8,
       },
     };
     const same = await createAudioCacheKey(base);
@@ -141,6 +143,18 @@ describe('createAudioCacheKey', () => {
       await createAudioCacheKey({
         ...base,
         indexTts: { ...base.indexTts, emotion: '怒:0.35' },
+      }),
+    ).not.toBe(same);
+    expect(
+      await createAudioCacheKey({
+        ...base,
+        indexTts: { ...base.indexTts, durationFactor: 1.2 },
+      }),
+    ).not.toBe(same);
+    expect(
+      await createAudioCacheKey({
+        ...base,
+        indexTts: { ...base.indexTts, emoWeight: 0.4 },
       }),
     ).not.toBe(same);
   });

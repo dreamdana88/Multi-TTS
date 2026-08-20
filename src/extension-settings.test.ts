@@ -74,6 +74,16 @@ describe('parseExtensionSettings', () => {
     expect(parsed.indexTtsBaseUrl).toBe('http://127.0.0.1:7860/');
     expect(parsed.indexTtsVoiceId).toBe('mori');
     expect(parsed.indexTtsLanguage).toBe('ZH');
+    expect(parsed.indexTtsDurationFactor).toBe(1);
+    expect(parsed.indexTtsEmoWeight).toBe(0.8);
+    expect(
+      parseExtensionSettings({ indexTtsDurationFactor: 9, indexTtsEmoWeight: -1 })
+        .indexTtsDurationFactor,
+    ).toBe(2);
+    expect(
+      parseExtensionSettings({ indexTtsDurationFactor: 9, indexTtsEmoWeight: -1 })
+        .indexTtsEmoWeight,
+    ).toBe(0);
     expect(parsed.characterMappings).toEqual([
       { characterName: '爱丽丝', minimaxVoiceId: 'mm-voice' },
     ]);

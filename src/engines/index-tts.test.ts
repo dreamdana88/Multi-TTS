@@ -18,6 +18,8 @@ function sampleRequest(
     baseUrl: 'http://127.0.0.1:7860',
     voiceId: 'mori',
     language: 'ZH',
+    durationFactor: 1,
+    emoWeight: 0.8,
     timeoutMs: 80,
     ...overrides,
   };
@@ -203,8 +205,12 @@ describe('IndexTTS speech', () => {
         voice: 'mori',
         response_format: 'wav',
         language: 'ZH',
+        duration_factor: 1,
+        emo_weight: 0.8,
       });
       expect(Object.keys(body).sort()).toEqual([
+        'duration_factor',
+        'emo_weight',
         'input',
         'language',
         'model',
@@ -220,6 +226,8 @@ describe('IndexTTS speech', () => {
       voice: 'mori',
       response_format: 'wav',
       language: 'ZH',
+      duration_factor: 1,
+      emo_weight: 0.8,
     });
     expect(
       buildIndexTtsSpeechPayload(sampleRequest({ emotion: { 怒: 0.35, 厌恶: 0.15 } })),
@@ -229,14 +237,33 @@ describe('IndexTTS speech', () => {
       voice: 'mori',
       response_format: 'wav',
       language: 'ZH',
+      duration_factor: 1,
+      emo_weight: 0.8,
       emotion: { 怒: 0.35, 厌恶: 0.15 },
     });
     expect(
       Object.keys(buildIndexTtsSpeechPayload(sampleRequest({ emotion: undefined }))).sort(),
-    ).toEqual(['input', 'language', 'model', 'response_format', 'voice']);
+    ).toEqual([
+      'duration_factor',
+      'emo_weight',
+      'input',
+      'language',
+      'model',
+      'response_format',
+      'voice',
+    ]);
     const blob = await createIndexTtsAdapter({ fetchImpl: fetch_impl }).synthesize(sampleRequest());
     expect(blob.size).toBe(4);
     expect(fetch_impl).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends IndexTTS duration_factor and emo_weight from the request', () => {
+    expect(
+      buildIndexTtsSpeechPayload(sampleRequest({ durationFactor: 1.25, emoWeight: 0.4 })),
+    ).toMatchObject({
+      duration_factor: 1.25,
+      emo_weight: 0.4,
+    });
   });
 
   it('adds emotion only when a sparse map is present', async () => {
@@ -244,6 +271,8 @@ describe('IndexTTS speech', () => {
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       expect(body.emotion).toEqual({ 怒: 0.35, 厌恶: 0.15 });
       expect(Object.keys(body).sort()).toEqual([
+        'duration_factor',
+        'emo_weight',
         'emotion',
         'input',
         'language',

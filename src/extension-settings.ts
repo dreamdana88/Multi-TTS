@@ -156,6 +156,8 @@ export type ExtensionSettings = {
   indexTtsLanguage: IndexTtsLanguage;
   indexTtsCharacterMappings: IndexTtsCharacterVoiceMapping[];
   indexTtsCharacterMappingPresets: IndexTtsCharacterMappingPreset[];
+  indexTtsDurationFactor: number;
+  indexTtsEmoWeight: number;
   injectEnabled: boolean;
   injectDepth: number;
   injectRole: InjectRole;
@@ -204,6 +206,8 @@ export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
   indexTtsLanguage: 'ZH',
   indexTtsCharacterMappings: [],
   indexTtsCharacterMappingPresets: [],
+  indexTtsDurationFactor: 1,
+  indexTtsEmoWeight: 0.8,
   injectEnabled: true,
   injectDepth: 1,
   injectRole: 'system',
@@ -412,6 +416,8 @@ export function parseExtensionSettings(raw: unknown): ExtensionSettings {
     indexTtsLanguage: asIndexTtsLanguage(source.indexTtsLanguage),
     indexTtsCharacterMappings: parseIndexTtsMappings(source.indexTtsCharacterMappings),
     indexTtsCharacterMappingPresets: parseIndexTtsPresets(source.indexTtsCharacterMappingPresets),
+    indexTtsDurationFactor: clampNumber(source.indexTtsDurationFactor, 0.5, 2, 1),
+    indexTtsEmoWeight: clampNumber(source.indexTtsEmoWeight, 0, 1, 0.8),
     injectEnabled: asBoolean(source.injectEnabled, true),
     injectDepth: clampNumber(source.injectDepth, 0, 50, 1, true),
     injectRole: asInjectRole(source.injectRole),

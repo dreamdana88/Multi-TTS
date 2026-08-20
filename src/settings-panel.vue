@@ -1345,6 +1345,31 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                   />
                 </label>
               </template>
+              <template v-else-if="is_index_tts">
+                <label class="mtts-field">
+                  <span class="mtts-label"
+                    >时长系数 {{ draft.indexTtsDurationFactor.toFixed(2) }}</span
+                  >
+                  <p class="mtts-hint">快 ← 不变 → 慢，与 IndexTTS WebUI 相同</p>
+                  <input
+                    v-model.number="draft.indexTtsDurationFactor"
+                    type="range"
+                    min="0.5"
+                    max="2"
+                    step="0.01"
+                  />
+                </label>
+                <label class="mtts-field">
+                  <span class="mtts-label">情感权重 {{ draft.indexTtsEmoWeight.toFixed(2) }}</span>
+                  <input
+                    v-model.number="draft.indexTtsEmoWeight"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                  />
+                </label>
+              </template>
               <div class="mtts-actions">
                 <button class="mtts-btn mtts-btn-danger" type="button" @click="resetSettings">
                   恢复默认

@@ -67,6 +67,8 @@ export type IndexTtsSynthesisRequest = {
   baseUrl: string;
   voiceId: string;
   language: IndexTtsLanguage;
+  durationFactor: number;
+  emoWeight: number;
   timeoutMs: number;
   signal?: AbortSignal;
   emotion?: IndexTtsEmotionMap;

@@ -149,6 +149,8 @@ export function buildSynthesisRequest(
       baseUrl: settings.indexTtsBaseUrl,
       voiceId: voice.indexTtsVoiceId,
       language: voice.indexTtsLanguage,
+      durationFactor: settings.indexTtsDurationFactor,
+      emoWeight: settings.indexTtsEmoWeight,
       timeoutMs: settings.requestTimeoutMs,
     };
     if (emotion && Object.keys(emotion).length > 0) {
@@ -218,6 +220,8 @@ export function buildVoiceCatalogRequest(settings: ExtensionSettings): Synthesis
       baseUrl: settings.indexTtsBaseUrl,
       voiceId: settings.indexTtsVoiceId.trim() || 'catalog',
       language: settings.indexTtsLanguage,
+      durationFactor: settings.indexTtsDurationFactor,
+      emoWeight: settings.indexTtsEmoWeight,
       timeoutMs: settings.requestTimeoutMs,
     };
   }
@@ -278,6 +282,8 @@ export function buildAudioCacheKeyInput(
         voiceId: voice.indexTtsVoiceId ?? '',
         language: voice.indexTtsLanguage ?? settings.indexTtsLanguage,
         format: 'wav',
+        durationFactor: settings.indexTtsDurationFactor,
+        emoWeight: settings.indexTtsEmoWeight,
         emotion: canonicalizeSayEmotion(emotion),
       },
     };

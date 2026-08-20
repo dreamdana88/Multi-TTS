@@ -63,6 +63,14 @@ describe('settings panel UI', () => {
     expect(textarea?.value).not.toContain('(laughs), (chuckle)');
   });
 
+  it('shows IndexTTS duration and emotion weight sliders', () => {
+    app = mountPanel({ ...DEFAULT_EXTENSION_SETTINGS, ttsEngine: 'index_tts' });
+    const text = document.body.textContent ?? '';
+    expect(text).toContain('时长系数 1.00');
+    expect(text).toContain('快 ← 不变 → 慢');
+    expect(text).toContain('情感权重 0.80');
+  });
+
   it('keeps MiniMax inject template editable', () => {
     app = mountPanel();
     const textarea = document.querySelector<HTMLTextAreaElement>('.mtts-inject-template');
