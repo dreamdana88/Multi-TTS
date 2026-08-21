@@ -10,13 +10,18 @@ import {
   type VoiceDescriptor,
 } from './contract';
 
-export const FISH_AUDIO_API_ORIGIN = 'https://api.fish.audio' as const;
-export const FISH_AUDIO_TTS_ENDPOINT = `${FISH_AUDIO_API_ORIGIN}/v1/tts` as const;
-export const FISH_AUDIO_MODEL_ENDPOINT = `${FISH_AUDIO_API_ORIGIN}/model` as const;
-export const FISH_AUDIO_PROXY_ERROR_MESSAGE = [
-  'Fish Audio 需要启用 SillyTavern CORS 代理。',
-  '请在 config.yaml 中设置 enableCorsProxy: true，并重启 SillyTavern。',
+export const FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT =
+  '/api/plugins/multi-tts-fish-bridge/health' as const;
+export const FISH_AUDIO_BRIDGE_MODELS_ENDPOINT =
+  '/api/plugins/multi-tts-fish-bridge/models' as const;
+export const FISH_AUDIO_BRIDGE_SPEECH_ENDPOINT =
+  '/api/plugins/multi-tts-fish-bridge/speech' as const;
+export const FISH_AUDIO_BRIDGE_API_VERSION = '1' as const;
+export const FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE = [
+  'Fish Bridge：不可用',
+  '未安装桥接，或 SillyTavern 未启用 Server Plugins。',
 ].join('\n');
+export const FISH_AUDIO_BRIDGE_INCOMPATIBLE_MESSAGE = 'Fish Bridge：版本不兼容';
 
 const FISH_AUDIO_AUDIO_TYPES = new Set([
   'audio/mpeg',
@@ -34,6 +39,11 @@ const FISH_AUDIO_UNAVAILABLE_STATES = new Set([
   'unavailable',
 ]);
 
+type HostRequestHeaders = Record<string, string>;
+type HostRequestHeadersProvider = (options?: { omitContentType?: boolean }) => unknown;
+
+let host_request_headers_promise: Promise<HostRequestHeaders> | null = null;
+
 export function isFishAudioModel(value: unknown): value is FishAudioModel {
   return (FISH_AUDIO_MODELS as readonly string[]).includes(String(value));
 }
@@ -46,13 +56,58 @@ function normalizeFishAudioApiKey(value: string): string {
   return value.replace(/^Bearer\s+/i, '').trim();
 }
 
-function buildFishAudioHeaders(api_key: string, model?: FishAudioModel): Record<string, string> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${normalizeFishAudioApiKey(api_key)}`,
-  };
-  if (model) {
+function normalizeHostRequestHeaders(value: unknown): HostRequestHeaders {
+  if (value instanceof Headers) {
+    const headers: HostRequestHeaders = {};
+    value.forEach((header_value, header_name) => {
+      headers[header_name] = header_value;
+    });
+    return headers;
+  }
+  if (!isRecord(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
+}
+
+async function getHostRequestHeaders(): Promise<HostRequestHeaders> {
+  const global_provider = (
+    globalThis as typeof globalThis & {
+      getRequestHeaders?: HostRequestHeadersProvider;
+    }
+  ).getRequestHeaders;
+  if (typeof global_provider === 'function') {
+    return normalizeHostRequestHeaders(global_provider({ omitContentType: true }));
+  }
+
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  const host_script_path = '/script.js';
+  host_request_headers_promise ??= import(/* @vite-ignore */ host_script_path)
+    .then((module) => {
+      const provider = (module as { getRequestHeaders?: HostRequestHeadersProvider })
+        .getRequestHeaders;
+      return typeof provider === 'function'
+        ? normalizeHostRequestHeaders(provider({ omitContentType: true }))
+        : {};
+    })
+    .catch(() => ({}));
+  return await host_request_headers_promise;
+}
+
+async function buildBridgeHeaders(api_key?: string, json = false): Promise<HostRequestHeaders> {
+  const headers = await getHostRequestHeaders();
+  if (json) {
     headers['Content-Type'] = 'application/json';
-    headers.model = model;
+  }
+  if (api_key) {
+    headers['X-Fish-API-Key'] = normalizeFishAudioApiKey(api_key);
   }
   return headers;
 }
@@ -72,44 +127,31 @@ export function buildFishAudioSpeechPayload(request: FishAudioSynthesisRequest) 
   };
 }
 
-export function buildFishAudioModelUrl(
-  origin = FISH_AUDIO_API_ORIGIN,
-  query: { self?: boolean; pageSize?: number; pageNumber?: number } = {},
-): string {
-  const url = new URL('/model', origin);
-  url.searchParams.set('self', String(query.self ?? true));
-  url.searchParams.set('page_size', String(query.pageSize ?? 100));
-  url.searchParams.set('page_number', String(query.pageNumber ?? 1));
-  return url.toString();
+export function buildFishAudioModelUrl(): string {
+  return FISH_AUDIO_BRIDGE_MODELS_ENDPOINT;
 }
 
-export function toSillyTavernProxyUrl(target_url: string): string {
-  return `/proxy/${encodeURIComponent(target_url)}`;
+function bridgeUnavailable(): TtsRequestError {
+  return new TtsRequestError(FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE, 'config');
 }
 
-function proxyError(): TtsRequestError {
-  return new TtsRequestError(FISH_AUDIO_PROXY_ERROR_MESSAGE, 'config');
+function bridgeIncompatible(): TtsRequestError {
+  return new TtsRequestError(FISH_AUDIO_BRIDGE_INCOMPATIBLE_MESSAGE, 'config');
 }
 
-function isSillyTavernProxyErrorBody(value: string): boolean {
-  return /(cors\s+proxy|enablecorsproxy|proxy\s+(?:is\s+)?(?:not\s+enabled|disabled|unavailable)|failed\s+to\s+fetch|\/proxy\/)/i.test(
-    value,
-  );
-}
-
-async function fetchFishAudioViaProxy(
+async function fetchFishBridge(
   fetch_impl: FetchLike,
-  target_url: string,
+  url: string,
   init: RequestInit,
   timeout_ms: number,
 ): Promise<TimedHttpResponse> {
   try {
-    return await fetchWithTimeout(fetch_impl, toSillyTavernProxyUrl(target_url), init, timeout_ms);
+    return await fetchWithTimeout(fetch_impl, url, init, timeout_ms);
   } catch (error) {
     if (error instanceof TtsRequestError) {
       throw error;
     }
-    throw proxyError();
+    throw bridgeUnavailable();
   }
 }
 
@@ -156,48 +198,81 @@ function statusMessage(status: number, operation: 'models' | 'synthesize'): stri
   return `HTTP ${status}`;
 }
 
-async function readFishAudioError(
+async function readBridgeError(
   response: TimedHttpResponse,
-  operation: 'models' | 'synthesize',
+  operation: 'models' | 'synthesize' | 'health',
 ): Promise<TtsRequestError> {
-  const label = statusMessage(response.status, operation);
+  let payload: unknown;
   try {
-    const text = await response.text();
-    if (isSillyTavernProxyErrorBody(text)) {
-      return proxyError();
-    }
-    try {
-      const payload = JSON.parse(text) as unknown;
-      if (isRecord(payload)) {
-        const detail =
-          typeof payload.message === 'string'
-            ? payload.message.trim()
-            : typeof payload.reason === 'string'
-              ? payload.reason.trim()
-              : '';
-        if (detail && detail.length <= 160) {
-          return new TtsRequestError(
-            `Fish Audio 请求失败：${label}（${detail}）`,
-            'http',
-            response.status,
-          );
-        }
-        return new TtsRequestError(`Fish Audio 请求失败：${label}`, 'http', response.status);
-      }
-      return new TtsRequestError(
-        `Fish Audio 请求失败：${label}（错误体结构无效）`,
-        'invalid_json',
-        response.status,
-      );
-    } catch {
-      return new TtsRequestError(
-        `Fish Audio 请求失败：${label}（错误体无法解析）`,
-        'invalid_json',
-        response.status,
-      );
-    }
+    payload = await response.json();
   } catch {
-    return new TtsRequestError(`Fish Audio 请求失败：${label}`, 'http', response.status);
+    return bridgeUnavailable();
+  }
+  if (!isRecord(payload)) {
+    return bridgeUnavailable();
+  }
+
+  const code = typeof payload.code === 'string' ? payload.code : '';
+  const message = typeof payload.message === 'string' ? payload.message.trim() : '';
+  if (code === 'timeout') {
+    return new TtsRequestError(message || '请求超时', 'timeout', response.status);
+  }
+  if (code === 'cancelled') {
+    return new TtsRequestError(message || '请求已取消', 'cancelled', response.status);
+  }
+  if (code === 'bridge_missing_api_key') {
+    return new TtsRequestError('请先填写 Fish Audio API Key', 'config', response.status);
+  }
+  if (code.startsWith('fish_') && operation !== 'health') {
+    const label = statusMessage(response.status, operation);
+    return new TtsRequestError(
+      message && message.length <= 160
+        ? `Fish Audio 请求失败：${label}（${message}）`
+        : `Fish Audio 请求失败：${label}`,
+      'http',
+      response.status,
+    );
+  }
+  return bridgeUnavailable();
+}
+
+async function readFishBridgeHealth(
+  fetch_impl: FetchLike,
+  request: FishAudioSynthesisRequest,
+): Promise<void> {
+  const response = await fetchFishBridge(
+    fetch_impl,
+    FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT,
+    {
+      method: 'GET',
+      headers: await buildBridgeHeaders(),
+      credentials: 'same-origin',
+      signal: request.signal,
+    },
+    request.timeoutMs,
+  );
+  try {
+    if (!response.ok) {
+      throw await readBridgeError(response, 'health');
+    }
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw bridgeUnavailable();
+    }
+    if (
+      !isRecord(payload) ||
+      payload.ok !== true ||
+      payload.api_version !== FISH_AUDIO_BRIDGE_API_VERSION
+    ) {
+      if (isRecord(payload) && payload.api_version !== FISH_AUDIO_BRIDGE_API_VERSION) {
+        throw bridgeIncompatible();
+      }
+      throw bridgeUnavailable();
+    }
+  } finally {
+    response.close();
   }
 }
 
@@ -211,7 +286,7 @@ function parseFishAudioVoiceCatalog(payload: unknown): VoiceDescriptor[] {
     if (!isRecord(item) || typeof item._id !== 'string' || !item._id.trim()) {
       continue;
     }
-    if (item.type !== 'tts') {
+    if (typeof item.type === 'string' && item.type !== 'tts') {
       continue;
     }
     if (
@@ -256,7 +331,7 @@ function toHealthResult(error: unknown): EngineHealth {
   }
   return {
     ok: false,
-    message: '无法连接 Fish Audio。请检查网络和 API Key。',
+    message: FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE,
   };
 }
 
@@ -271,20 +346,37 @@ export function createFishAudioAdapter(options?: { fetchImpl?: FetchLike }): Tts
     if (!api_key) {
       throw new TtsRequestError('请先填写 Fish Audio API Key', 'config');
     }
-    const response = await fetchFishAudioViaProxy(
+    const response = await fetchFishBridge(
       fetch_impl,
       buildFishAudioModelUrl(),
       {
-        method: 'GET',
-        headers: buildFishAudioHeaders(api_key),
+        method: 'POST',
+        headers: await buildBridgeHeaders(api_key),
+        credentials: 'same-origin',
         signal: request.signal,
       },
       request.timeoutMs,
     );
-    if (!response.ok) {
-      throw await readFishAudioError(response, 'models');
+    try {
+      if (!response.ok) {
+        throw await readBridgeError(response, 'models');
+      }
+      return parseFishAudioVoiceCatalog(await response.json());
+    } catch (error) {
+      if (error instanceof TtsRequestError) {
+        throw error;
+      }
+      throw new TtsRequestError('Fish Bridge 返回了无法解析的模型列表', 'invalid_json');
+    } finally {
+      response.close();
     }
-    return parseFishAudioVoiceCatalog(await response.json());
+  }
+
+  async function ensureBridge(request: FishAudioSynthesisRequest): Promise<void> {
+    if (request.engine !== 'fish_audio') {
+      throw new TtsRequestError('Fish Audio 适配器收到了错误的引擎请求', 'config');
+    }
+    await readFishBridgeHealth(fetch_impl, request);
   }
 
   return {
@@ -294,6 +386,7 @@ export function createFishAudioAdapter(options?: { fetchImpl?: FetchLike }): Tts
         throw new TtsRequestError('Fish Audio 适配器收到了错误的引擎请求', 'config');
       }
       try {
+        await ensureBridge(request);
         const voices = await listModels(request);
         return { ok: true, message: `Fish Audio 服务在线，可用音色模型 ${voices.length} 个` };
       } catch (error) {
@@ -304,6 +397,7 @@ export function createFishAudioAdapter(options?: { fetchImpl?: FetchLike }): Tts
       if (request.engine !== 'fish_audio') {
         throw new TtsRequestError('Fish Audio 适配器收到了错误的引擎请求', 'config');
       }
+      await ensureBridge(request);
       return await listModels(request);
     },
     async synthesize(request) {
@@ -319,38 +413,38 @@ export function createFishAudioAdapter(options?: { fetchImpl?: FetchLike }): Tts
         volume: payload.prosody.volume,
         text: request.text,
       });
-      const response = await fetchFishAudioViaProxy(
+      const response = await fetchFishBridge(
         fetch_impl,
-        FISH_AUDIO_TTS_ENDPOINT,
+        FISH_AUDIO_BRIDGE_SPEECH_ENDPOINT,
         {
           method: 'POST',
-          headers: buildFishAudioHeaders(request.apiKey, request.model),
-          body: JSON.stringify(payload),
+          headers: await buildBridgeHeaders(request.apiKey, true),
+          credentials: 'same-origin',
+          body: JSON.stringify({ ...payload, model: request.model }),
           signal: request.signal,
         },
         request.timeoutMs,
       );
-      if (!response.ok) {
-        throw await readFishAudioError(response, 'synthesize');
-      }
-      const content_type = response.headers.get('content-type');
-      if (!isAudioMp3ContentType(content_type)) {
-        const body = await response.blob();
-        if (isSillyTavernProxyErrorBody(await body.text())) {
-          throw proxyError();
+      try {
+        if (!response.ok) {
+          throw await readBridgeError(response, 'synthesize');
         }
+        const content_type = response.headers.get('content-type');
+        if (!isAudioMp3ContentType(content_type)) {
+          throw new TtsRequestError(
+            `Fish Audio 合成失败：响应类型不是 MP3 音频（当前：${content_type || '缺失'}）`,
+            'missing_audio',
+            response.status,
+          );
+        }
+        const blob = await response.blob();
+        if (!blob || blob.size <= 0) {
+          throw new TtsRequestError('Fish Audio 合成失败：返回的音频为空', 'missing_audio');
+        }
+        return new Blob([await blob.arrayBuffer()], { type: 'audio/mpeg' });
+      } finally {
         response.close();
-        throw new TtsRequestError(
-          `Fish Audio 合成失败：响应类型不是 MP3 音频（当前：${content_type || '缺失'}）`,
-          'missing_audio',
-          response.status,
-        );
       }
-      const blob = await response.blob();
-      if (!blob || blob.size <= 0) {
-        throw new TtsRequestError('Fish Audio 合成失败：返回的音频为空', 'missing_audio');
-      }
-      return new Blob([await blob.arrayBuffer()], { type: 'audio/mpeg' });
     },
   };
 }

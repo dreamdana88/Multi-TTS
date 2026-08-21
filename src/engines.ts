@@ -48,15 +48,16 @@ export {
   isIndexTtsLanguage,
 } from './engines/index-tts';
 export {
-  FISH_AUDIO_API_ORIGIN,
-  FISH_AUDIO_MODEL_ENDPOINT,
-  FISH_AUDIO_PROXY_ERROR_MESSAGE,
-  FISH_AUDIO_TTS_ENDPOINT,
+  FISH_AUDIO_BRIDGE_API_VERSION,
+  FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT,
+  FISH_AUDIO_BRIDGE_INCOMPATIBLE_MESSAGE,
+  FISH_AUDIO_BRIDGE_MODELS_ENDPOINT,
+  FISH_AUDIO_BRIDGE_SPEECH_ENDPOINT,
+  FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE,
   buildFishAudioModelUrl,
   buildFishAudioSpeechPayload,
   createFishAudioAdapter,
   isFishAudioModel,
-  toSillyTavernProxyUrl,
 } from './engines/fish-audio';
 
 export function createTtsAdapter(engine_id: TtsEngineId): TtsEngineAdapter {

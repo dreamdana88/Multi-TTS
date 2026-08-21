@@ -1,5 +1,5 @@
 import { normalizeCacheOrigin, type AudioCacheKeyInput } from '../audio-cache';
-import { FISH_AUDIO_API_ORIGIN, INDEX_TTS_MODEL } from '../engines';
+import { FISH_AUDIO_BRIDGE_SPEECH_ENDPOINT, INDEX_TTS_MODEL } from '../engines';
 import type { ExtensionSettings } from '../extension-settings';
 import type {
   FishAudioSynthesisRequest,
@@ -272,9 +272,6 @@ export function buildVoiceCatalogRequest(settings: ExtensionSettings): Synthesis
     };
   }
   if (settings.ttsEngine === 'fish_audio') {
-    if (!settings.fishAudioApiKey.trim()) {
-      return null;
-    }
     return {
       engine: 'fish_audio',
       text: 'catalog',
@@ -354,7 +351,7 @@ export function buildAudioCacheKeyInput(
       text,
       engine: 'fish_audio',
       fishAudio: {
-        origin: normalizeCacheOrigin(FISH_AUDIO_API_ORIGIN),
+        origin: FISH_AUDIO_BRIDGE_SPEECH_ENDPOINT,
         model: settings.fishAudioModel,
         referenceId: voice.fishAudioReferenceId ?? '',
         speed: settings.fishAudioSpeed,

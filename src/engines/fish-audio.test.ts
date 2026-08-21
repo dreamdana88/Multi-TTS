@@ -1,13 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  FISH_AUDIO_MODEL_ENDPOINT,
-  FISH_AUDIO_PROXY_ERROR_MESSAGE,
-  FISH_AUDIO_TTS_ENDPOINT,
+  FISH_AUDIO_BRIDGE_API_VERSION,
+  FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT,
+  FISH_AUDIO_BRIDGE_INCOMPATIBLE_MESSAGE,
+  FISH_AUDIO_BRIDGE_MODELS_ENDPOINT,
+  FISH_AUDIO_BRIDGE_SPEECH_ENDPOINT,
+  FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE,
   buildFishAudioModelUrl,
   buildFishAudioSpeechPayload,
   createFishAudioAdapter,
   createTtsAdapter,
-  toSillyTavernProxyUrl,
 } from '../engines';
 import type { FishAudioSynthesisRequest } from '../engines';
 
@@ -34,6 +36,14 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function healthResponse(version = FISH_AUDIO_BRIDGE_API_VERSION) {
+  return jsonResponse({
+    ok: true,
+    service: 'multi-tts-fish-bridge',
+    api_version: version,
+  });
+}
+
 function mp3Response(bytes: Uint8Array = new Uint8Array([1, 2, 3])) {
   const body = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(body).set(bytes);
@@ -44,32 +54,54 @@ function mp3Response(bytes: Uint8Array = new Uint8Array([1, 2, 3])) {
 }
 
 describe('Fish Audio adapter', () => {
+  const previous_get_request_headers = (
+    globalThis as typeof globalThis & {
+      getRequestHeaders?: (options?: { omitContentType?: boolean }) => unknown;
+    }
+  ).getRequestHeaders;
+
+  beforeEach(() => {
+    (
+      globalThis as typeof globalThis & {
+        getRequestHeaders?: (options?: { omitContentType?: boolean }) => unknown;
+      }
+    ).getRequestHeaders = () => ({ 'X-CSRF-Token': 'csrf-test' });
+  });
+
+  afterEach(() => {
+    (
+      globalThis as typeof globalThis & {
+        getRequestHeaders?: (options?: { omitContentType?: boolean }) => unknown;
+      }
+    ).getRequestHeaders = previous_get_request_headers;
+  });
+
   it('is independently created by the adapter factory', () => {
     expect(createTtsAdapter('fish_audio').id).toBe('fish_audio');
     expect(createFishAudioAdapter().id).toBe('fish_audio');
   });
 
-  it('builds the official private model-list query', () => {
-    expect(buildFishAudioModelUrl()).toBe(
-      `${FISH_AUDIO_MODEL_ENDPOINT}?self=true&page_size=100&page_number=1`,
-    );
+  it('uses the same-origin Bridge models route', () => {
+    expect(buildFishAudioModelUrl()).toBe(FISH_AUDIO_BRIDGE_MODELS_ENDPOINT);
+    expect(buildFishAudioModelUrl()).not.toContain('api.fish.audio');
+    expect(buildFishAudioModelUrl()).not.toContain('/proxy/');
   });
 
-  it('encodes the complete Fish target URL for the SillyTavern proxy', () => {
-    const target = buildFishAudioModelUrl();
-    const proxy_url = toSillyTavernProxyUrl(target);
-
-    expect(proxy_url).toBe(`/proxy/${encodeURIComponent(target)}`);
-    expect(decodeURIComponent(proxy_url.slice('/proxy/'.length))).toBe(target);
-  });
-
-  it('checks the connection through model listing with Bearer authorization', async () => {
+  it('checks Bridge health first, then models, without putting the Fish key on health', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
     const fetch_impl = vi.fn(async (url: string, init?: RequestInit) => {
-      expect(url).toBe(
-        toSillyTavernProxyUrl(`${FISH_AUDIO_MODEL_ENDPOINT}?self=true&page_size=100&page_number=1`),
-      );
-      expect(init?.method).toBe('GET');
-      expect(init?.headers).toEqual({ Authorization: 'Bearer fish-secret' });
+      calls.push({ url, init });
+      if (url === FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT) {
+        return healthResponse();
+      }
+      expect(url).toBe(FISH_AUDIO_BRIDGE_MODELS_ENDPOINT);
+      expect(init?.method).toBe('POST');
+      expect(init?.credentials).toBe('same-origin');
+      expect(init?.headers).toEqual({
+        'X-CSRF-Token': 'csrf-test',
+        'X-Fish-API-Key': 'fish-secret',
+      });
+      expect(JSON.stringify(init?.headers)).not.toContain('Authorization');
       return jsonResponse({ items: [] });
     });
 
@@ -79,58 +111,62 @@ describe('Fish Audio adapter', () => {
       ok: true,
       message: 'Fish Audio 服务在线，可用音色模型 0 个',
     });
+
+    expect(calls.map((call) => call.url)).toEqual([
+      FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT,
+      FISH_AUDIO_BRIDGE_MODELS_ENDPOINT,
+    ]);
+    expect(calls[0]?.init?.method).toBe('GET');
+    expect(calls[0]?.init?.headers).toEqual({ 'X-CSRF-Token': 'csrf-test' });
   });
 
-  it('keeps only TTS models with usable state and uses title before id', async () => {
+  it('keeps created models and accepts missing, null, or non-string type values', async () => {
     const listed = await createFishAudioAdapter({
-      fetchImpl: async () =>
-        jsonResponse({
-          items: [
-            { _id: 'tts-1', type: 'tts', state: 'trained', title: '森' },
-            { _id: 'tts-created', type: 'tts', state: 'created', title: '快速音色' },
-            { _id: 'tts-2', type: 'tts', state: 'failed', title: '失败' },
-            { _id: 'tts-5', type: 'tts', state: 'training', title: '训练中' },
-            { _id: 'svc-1', type: 'svc', state: 'trained', title: '服务' },
-            { _id: '', type: 'tts', state: 'trained', title: '缺少 ID' },
-            { _id: 'tts-3', type: 'tts', state: 'trained', dmca_taken_down: true },
-            { _id: 'tts-4', type: 'tts', state: 'trained', pvc_release_state: 'retiring' },
-          ],
-        }),
+      fetchImpl: async (url: string) =>
+        url === FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT
+          ? healthResponse()
+          : jsonResponse({
+              items: [
+                { _id: 'tts-1', type: 'tts', state: 'trained', title: '森' },
+                { _id: 'tts-created', type: 'tts', state: 'created', title: '快速音色' },
+                { _id: 'missing-type', state: 'created', title: '缺省类型' },
+                { _id: 'null-type', type: null, state: 'created', title: '空类型' },
+                { _id: 'number-type', type: 1, state: 'created', title: '非字符串类型' },
+                { _id: 'tts-2', type: 'tts', state: 'failed', title: '失败' },
+                { _id: 'tts-5', type: 'tts', state: 'training', title: '训练中' },
+                { _id: 'svc-1', type: 'svc', state: 'trained', title: '服务' },
+                { _id: '', type: 'tts', state: 'trained', title: '缺少 ID' },
+                { _id: 'dmca-1', type: 'tts', state: 'trained', dmca_taken_down: true },
+                { _id: 'retiring-1', type: 'tts', state: 'trained', pvc_release_state: 'retiring' },
+              ],
+            }),
     }).listVoices(sampleRequest());
 
-    expect(listed).toEqual([
-      {
-        id: 'tts-1',
-        name: '森',
-        description: undefined,
-        source: 'fish_audio',
-        language: undefined,
-        languages: undefined,
-      },
-      {
-        id: 'tts-created',
-        name: '快速音色',
-        description: undefined,
-        source: 'fish_audio',
-        language: undefined,
-        languages: undefined,
-      },
+    expect(listed.map((voice) => voice.id)).toEqual([
+      'tts-1',
+      'tts-created',
+      'missing-type',
+      'null-type',
+      'number-type',
     ]);
   });
 
-  it('sends only the frozen MP3 synthesis fields and preserves bracket prompts', async () => {
+  it('sends the frozen MP3 synthesis fields through Bridge and preserves bracket prompts', async () => {
     const fetch_impl = vi.fn(async (url: string, init?: RequestInit) => {
-      expect(url).toBe(toSillyTavernProxyUrl(FISH_AUDIO_TTS_ENDPOINT));
+      expect(url).toBe(FISH_AUDIO_BRIDGE_SPEECH_ENDPOINT);
       expect(init?.method).toBe('POST');
+      expect(init?.credentials).toBe('same-origin');
       expect(init?.headers).toEqual({
-        Authorization: 'Bearer fish-secret',
+        'X-CSRF-Token': 'csrf-test',
         'Content-Type': 'application/json',
-        model: 's2.1-pro',
+        'X-Fish-API-Key': 'fish-secret',
       });
+      expect(JSON.stringify(init?.headers)).not.toContain('Authorization');
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       expect(body).toEqual({
         text: '[laughing]你居然真的来了。',
         reference_id: 'voice-model-1',
+        model: 's2.1-pro',
         format: 'mp3',
         normalize: true,
         latency: 'normal',
@@ -140,14 +176,9 @@ describe('Fish Audio adapter', () => {
           normalize_loudness: true,
         },
       });
-      expect(Object.keys(body).sort()).toEqual([
-        'format',
-        'latency',
-        'normalize',
-        'prosody',
-        'reference_id',
-        'text',
-      ]);
+      expect('input' in body).toBe(false);
+      expect('voice' in body).toBe(false);
+      expect('response_format' in body).toBe(false);
       return mp3Response();
     });
 
@@ -202,51 +233,56 @@ describe('Fish Audio adapter', () => {
     }
   });
 
-  it('explains when the SillyTavern CORS proxy is unavailable', async () => {
-    expect(FISH_AUDIO_PROXY_ERROR_MESSAGE).toBe(
-      'Fish Audio 需要启用 SillyTavern CORS 代理。\n请在 config.yaml 中设置 enableCorsProxy: true，并重启 SillyTavern。',
-    );
-
+  it('reports missing Bridge and incompatible Bridge versions clearly', async () => {
     await expect(
       createFishAudioAdapter({
         fetchImpl: async () => {
           throw new TypeError('Failed to fetch');
         },
       }).synthesize(sampleRequest()),
-    ).rejects.toMatchObject({ code: 'config', message: FISH_AUDIO_PROXY_ERROR_MESSAGE });
+    ).rejects.toMatchObject({ code: 'config', message: FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE });
 
     await expect(
       createFishAudioAdapter({
-        fetchImpl: async () =>
-          jsonResponse({ error: 'CORS proxy is not enabled; set enableCorsProxy: true' }, 502),
+        fetchImpl: async () => new Response('<html>not found</html>', { status: 404 }),
       }).checkHealth(sampleRequest()),
-    ).resolves.toEqual({ ok: false, message: FISH_AUDIO_PROXY_ERROR_MESSAGE });
+    ).resolves.toEqual({ ok: false, message: FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE });
+
+    await expect(
+      createFishAudioAdapter({
+        fetchImpl: async () => jsonResponse({ ok: true, api_version: '2' }),
+      }).checkHealth(sampleRequest()),
+    ).resolves.toEqual({ ok: false, message: FISH_AUDIO_BRIDGE_INCOMPATIBLE_MESSAGE });
   });
 
-  it('maps HTTP statuses without exposing authorization data', async () => {
+  it('maps Bridge-preserved Fish statuses without exposing authorization data', async () => {
     const cases = [
-      [401, 'API Key 无效'],
-      [402, '余额或套餐不可用'],
-      [404, 'reference_id 不存在'],
-      [422, '请求参数错误'],
-      [429, '请求频率限制'],
-      [503, 'Fish Audio 服务异常'],
+      [401, 'fish_auth_failed', 'API Key 无效'],
+      [402, 'fish_billing_unavailable', '余额或套餐不可用'],
+      [404, 'fish_reference_not_found', 'reference_id 不存在'],
+      [422, 'fish_invalid_request', '请求参数错误'],
+      [429, 'fish_rate_limited', '请求频率限制'],
+      [503, 'fish_upstream_error', 'Fish Audio 服务异常'],
     ] as const;
-    for (const [status, message] of cases) {
+    for (const [status, code, message] of cases) {
       await expect(
         createFishAudioAdapter({
-          fetchImpl: async () => jsonResponse({ message: 'server detail' }, status),
+          fetchImpl: async () =>
+            jsonResponse({ ok: false, code, message: `safe ${message}` }, status),
         }).synthesize(sampleRequest()),
-      ).rejects.toMatchObject({ status, message: expect.stringContaining(message) });
+      ).rejects.toMatchObject({
+        status,
+        message: expect.stringContaining(message),
+      });
     }
   });
 
-  it('maps malformed error bodies, timeout, and cancellation', async () => {
+  it('maps malformed Bridge errors, timeout, and cancellation', async () => {
     await expect(
       createFishAudioAdapter({
         fetchImpl: async () => new Response('not-json', { status: 500 }),
       }).synthesize(sampleRequest()),
-    ).rejects.toMatchObject({ code: 'invalid_json', status: 500 });
+    ).rejects.toMatchObject({ code: 'config', message: FISH_AUDIO_BRIDGE_UNAVAILABLE_MESSAGE });
 
     await expect(
       createFishAudioAdapter({ fetchImpl: async () => new Promise(() => undefined) }).synthesize(
@@ -263,5 +299,14 @@ describe('Fish Audio adapter', () => {
     }).synthesize(sampleRequest({ signal: controller.signal, timeoutMs: 1000 }));
     controller.abort('cancelled');
     await expect(pending).rejects.toMatchObject({ code: 'cancelled' });
+  });
+
+  it('performs the health handshake before reporting a missing API key', async () => {
+    const fetch_impl = vi.fn(async (_url: string) => healthResponse());
+    await expect(
+      createFishAudioAdapter({ fetchImpl: fetch_impl }).checkHealth(sampleRequest({ apiKey: '' })),
+    ).resolves.toEqual({ ok: false, message: '请先填写 Fish Audio API Key' });
+    expect(fetch_impl).toHaveBeenCalledTimes(1);
+    expect(fetch_impl.mock.calls[0]?.[0]).toBe(FISH_AUDIO_BRIDGE_HEALTH_ENDPOINT);
   });
 });

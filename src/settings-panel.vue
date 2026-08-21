@@ -154,6 +154,18 @@ const engine_name = computed(() => {
 const connection = computed(() => connection_by_engine[draft.ttsEngine]);
 const connection_text = computed(() => {
   const item = connection.value;
+  if (is_fish_audio.value) {
+    if (item.kind === 'connecting') {
+      return 'Fish Bridge：连接中';
+    }
+    if (item.kind === 'online') {
+      return item.detail ? `Fish Bridge：已连接 · ${item.detail}` : 'Fish Bridge：已连接';
+    }
+    if (item.kind === 'offline') {
+      return item.detail || 'Fish Bridge：不可用';
+    }
+    return 'Fish Bridge：尚未检查';
+  }
   if (item.kind === 'connecting') {
     return '正在连接';
   }

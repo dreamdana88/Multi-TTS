@@ -16,6 +16,40 @@ SillyTavern 第三方前端扩展。目标是把原来的酒馆助手脚本，�
 
 安装不会改酒馆助手脚本，也不会读取或覆盖旧脚本的配置。新旧两套数据使用不同的设置命名空间。
 
+## Fish Audio Bridge
+
+Fish Audio 是独立的 SillyTavern Server Plugin，不随本前端扩展自动安装。当前 Bridge 尚未发布到公共 Git 仓库，因此没有在线仓库地址可供复制；请把本地 `Multi-TTS-Fish-Bridge` 目录复制为：
+
+```text
+<SillyTavern>/plugins/multi-tts-fish-bridge
+```
+
+Windows PowerShell：
+
+```powershell
+$SillyTavern = 'D:\path\to\SillyTavern'
+New-Item -ItemType Directory -Force "$SillyTavern\plugins\multi-tts-fish-bridge"
+Copy-Item -Recurse -Force 'D:\path\to\Multi-TTS-Fish-Bridge\*' "$SillyTavern\plugins\multi-tts-fish-bridge"
+```
+
+Termux / Linux：
+
+```bash
+SILLY_TAVERN=/path/to/SillyTavern
+mkdir -p "$SILLY_TAVERN/plugins/multi-tts-fish-bridge"
+cp -a /path/to/Multi-TTS-Fish-Bridge/. "$SILLY_TAVERN/plugins/multi-tts-fish-bridge/"
+```
+
+Docker 或云端部署时，持久化挂载包含该插件的 `plugins` 目录，并在 `config.yaml` 中设置：
+
+```yaml
+enableServerPlugins: true
+```
+
+重启 SillyTavern 后，在 Fish Audio 设置页点击检查连接。前端先握手 `GET /api/plugins/multi-tts-fish-bridge/health`，确认协议版本为 `1`，再请求模型和语音；前端只向同源 Bridge 发送 `X-Fish-API-Key`，不会直接访问 Fish Audio，也不会发送 Fish `Authorization` 请求头。公网使用时应启用 HTTPS，避免暴露 API Key。
+
+前端扩展与 Bridge 是两个独立组件；前端不会替你安装插件、修改酒馆配置、启动服务或重启 SillyTavern。Bridge 的完整安装与平台说明见 `Multi-TTS-Fish-Bridge/README.md`。
+
 ## 开发构建
 
 本仓库不会自动写入任何本机 SillyTavern 的 `third-party` 目录。
@@ -61,7 +95,7 @@ mklink /D "C:\path\to\SillyTavern\public\scripts\extensions\third-party\Multi-TT
 
 当前字段：
 
-- `schemaVersion`：`2`
+- `schemaVersion`：`3`
 - `enabled` / `injectEnabled`：功能和提示词注入开关
 - MiniMax / Local-GSVI 引擎、角色映射、映射存档、预取和缓存参数
 

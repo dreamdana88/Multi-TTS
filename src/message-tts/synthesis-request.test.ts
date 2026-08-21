@@ -340,6 +340,16 @@ describe('buildSynthesisRequest', () => {
       buildVoiceCatalogRequest({
         ...DEFAULT_EXTENSION_SETTINGS,
         ttsEngine: 'fish_audio',
+        fishAudioApiKey: '',
+      }),
+    ).toMatchObject({
+      engine: 'fish_audio',
+      apiKey: '',
+    });
+    expect(
+      buildVoiceCatalogRequest({
+        ...DEFAULT_EXTENSION_SETTINGS,
+        ttsEngine: 'fish_audio',
         fishAudioApiKey: 'fish-secret',
         fishAudioReferenceId: 'public-model',
       }),
@@ -480,7 +490,7 @@ describe('buildSynthesisRequest', () => {
       engine: 'fish_audio',
       text: '[laughing]你好',
       fishAudio: {
-        origin: 'https://api.fish.audio',
+        origin: '/api/plugins/multi-tts-fish-bridge/speech',
         model: 's2.1-pro-free',
         referenceId: 'mapped-model',
         speed: 1,

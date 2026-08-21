@@ -83,6 +83,7 @@ describe('settings panel UI', () => {
     app = mountPanel({ ...DEFAULT_EXTENSION_SETTINGS, ttsEngine: 'fish_audio' });
     const text = document.body.textContent ?? '';
     expect(text).toContain('Fish Audio');
+    expect(text).toContain('Fish Bridge：尚未检查');
     expect(text).toContain('可从 Fish Audio 音色页面复制模型 ID');
     expect(text).toContain('S2.1 Pro Free');
     expect(text).toContain('音量 0.00 dB');
