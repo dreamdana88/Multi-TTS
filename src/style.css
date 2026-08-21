@@ -615,14 +615,41 @@
 }
 
 .tavern-multi-tts-segment .tavern-multi-tts-action {
-  border: 1px solid currentcolor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
   background: transparent;
   color: inherit;
   border-radius: 4px;
-  font-size: 0.72em;
+  font-size: 0.78em;
   line-height: 1;
-  padding: 0.12em 0.32em;
+  padding: 0.18em;
+  opacity: 0.7;
   cursor: pointer;
+}
+
+.tavern-multi-tts-segment .tavern-multi-tts-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.05em;
+}
+
+.tavern-multi-tts-segment .tavern-multi-tts-action svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.tavern-multi-tts-segment .tavern-multi-tts-action:hover,
+.tavern-multi-tts-segment .tavern-multi-tts-action:focus-visible {
+  background: rgb(127 127 127 / 16%);
+  opacity: 1;
 }
 
 .tavern-multi-tts-segment.is-loading {

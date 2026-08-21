@@ -67,6 +67,31 @@ describe('message decoration', () => {
     expect(root.querySelector(`.${SEGMENT_CLASS}`)?.textContent).toContain('你好');
   });
 
+  it('uses accessible icon actions and forces a single-segment regeneration', async () => {
+    const root = createMessage(7, '你好');
+    const ensureAudio = vi.fn(async (...args: unknown[]) => {
+      const options = args[3] as { force?: boolean } | undefined;
+      return { blob: new Blob([options?.force ? 'regenerated' : 'cached']) };
+    });
+    decorateMessageElement(
+      root,
+      7,
+      [{ index: 0, text: '你好', displayText: '你好', ttsText: '你好' }],
+      { ensureAudio, downloadAudio: vi.fn() },
+      new Map(),
+    );
+
+    const download = root.querySelector<HTMLButtonElement>('[aria-label="下载这句语音"]');
+    const regenerate = root.querySelector<HTMLButtonElement>('[aria-label="重新生成这句语音"]');
+    expect(download?.querySelector('svg')).not.toBeNull();
+    expect(regenerate?.querySelector('svg')).not.toBeNull();
+
+    regenerate?.click();
+    await vi.waitFor(() => expect(ensureAudio).toHaveBeenCalledTimes(1));
+    expect(ensureAudio.mock.calls[0]?.[3]).toEqual({ force: true });
+    expect(root.querySelector(`.${SEGMENT_CLASS}`)?.classList.contains('is-ready')).toBe(true);
+  });
+
   it('parses swipe-scoped playback keys and rejects invalid ones', () => {
     expect(buildSegmentPlaybackKey(5, 2, 1)).toBe('5:2:1');
     expect(parseSegmentPlaybackKey('5:2:1')).toEqual({

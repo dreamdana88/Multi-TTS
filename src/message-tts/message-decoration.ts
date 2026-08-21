@@ -39,11 +39,16 @@ export type EnsureAudioResult = {
   cancelled?: boolean;
 };
 
+export type EnsureAudioOptions = {
+  force?: boolean;
+};
+
 export type DecoratedSegmentHandlers = {
   ensureAudio: (
     segment: SaySegment,
     display_text: string,
     tts_text: string,
+    options?: EnsureAudioOptions,
   ) => Promise<EnsureAudioResult>;
   downloadAudio: (blob: Blob, message_id: number, index: number) => void;
 };
@@ -145,6 +150,20 @@ function mountSegmentInline(
   return false;
 }
 
+const DOWNLOAD_ICON = '<path d="M12 3v11m0 0 4-4m-4 4-4-4M5 21h14" />';
+const REGENERATE_ICON =
+  '<path d="M20 11a8 8 0 0 0-14.9-3.8L3 10m0 0V4m0 6h6M4 13a8 8 0 0 0 14.9 3.8L21 14m0 0v6m0-6h-6" />';
+
+function createActionButton(label: string, icon: string) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'tavern-multi-tts-action';
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${icon}</svg>`;
+  return button;
+}
+
 function createSegmentElement(
   message_id: number,
   swipe_id: number,
@@ -169,20 +188,18 @@ function createSegmentElement(
 
   const actions = document.createElement('span');
   actions.className = 'tavern-multi-tts-actions';
-  const download = document.createElement('button');
-  download.type = 'button';
-  download.className = 'tavern-multi-tts-action';
-  download.textContent = '下';
-  actions.append(download);
+  const download = createActionButton('下载这句语音', DOWNLOAD_ICON);
+  const regenerate_button = createActionButton('重新生成这句语音', REGENERATE_ICON);
+  actions.append(download, regenerate_button);
   root.append(text, indicator, actions);
   setSegmentState(root, 'idle');
 
   let current = playbacks.get(key) ?? null;
 
-  const ensure = async () => {
+  const ensure = async (options: EnsureAudioOptions = {}) => {
     setSegmentState(root, 'loading');
     try {
-      const result = await handlers.ensureAudio(segment, display_text, tts_text);
+      const result = await handlers.ensureAudio(segment, display_text, tts_text, options);
       if (result.cancelled) {
         return null;
       }
@@ -198,12 +215,18 @@ function createSegmentElement(
     }
   };
 
+  const discardCurrentPlayback = () => {
+    current?.stop();
+    current = null;
+    playbacks.delete(key);
+  };
+
   const restart = async () => {
     const blob = await ensure();
     if (!blob) {
       return;
     }
-    current?.stop();
+    discardCurrentPlayback();
     current = playAudioBlob(
       blob,
       () => setSegmentState(root, 'playing'),
@@ -220,6 +243,11 @@ function createSegmentElement(
       () => setSegmentState(root, 'ready'),
     );
     playbacks.set(key, current);
+  };
+
+  const regenerateAudio = async () => {
+    discardCurrentPlayback();
+    await ensure({ force: true });
   };
 
   const toggle = async () => {
@@ -260,6 +288,11 @@ function createSegmentElement(
         handlers.downloadAudio(blob, message_id, segment.index);
       }
     })();
+  });
+  regenerate_button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    void regenerateAudio();
   });
 
   return root;

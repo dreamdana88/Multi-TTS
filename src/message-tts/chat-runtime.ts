@@ -22,6 +22,7 @@ import {
   isMessageDecorated,
   parseSegmentPlaybackKey,
   removeMessageDecorations,
+  type EnsureAudioOptions,
   type EnsureAudioResult,
 } from './message-decoration';
 import type { SayEmotion } from './say-parser';
@@ -144,6 +145,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
     tts_text: string,
     segment_char?: string,
     emotion?: SayEmotion,
+    options: EnsureAudioOptions = {},
   ): Promise<EnsureAudioResult> {
     const started = beginInflight(key, message_id, swipe_id);
     try {
@@ -158,17 +160,19 @@ export function createChatRuntime(host: ChatRuntimeHost) {
       if (!isCurrentInflight(key, started.token) || started.controller.signal.aborted) {
         return { cancelled: true };
       }
-      const memory = memory_blobs.get(cache_key);
-      if (memory) {
-        return { blob: memory };
-      }
-      const cached = await getCachedAudio(cache_key);
-      if (!isCurrentInflight(key, started.token) || started.controller.signal.aborted) {
-        return { cancelled: true };
-      }
-      if (cached) {
-        memory_blobs.set(cache_key, cached);
-        return { blob: cached };
+      if (!options.force) {
+        const memory = memory_blobs.get(cache_key);
+        if (memory) {
+          return { blob: memory };
+        }
+        const cached = await getCachedAudio(cache_key);
+        if (!isCurrentInflight(key, started.token) || started.controller.signal.aborted) {
+          return { cancelled: true };
+        }
+        if (cached) {
+          memory_blobs.set(cache_key, cached);
+          return { blob: cached };
+        }
       }
       const adapter = createTtsAdapter(request.engine);
       const blob = await adapter.synthesize(request);
@@ -315,7 +319,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
       message_id,
       prepared,
       {
-        ensureAudio: async (segment, _display, tts_text) => {
+        ensureAudio: async (segment, _display, tts_text, options) => {
           const key = `${message_id}:${swipe_id}:${segment.index}`;
           return await ensureAudio(
             key,
@@ -324,6 +328,7 @@ export function createChatRuntime(host: ChatRuntimeHost) {
             tts_text,
             segment.char,
             segment.emotion,
+            options,
           );
         },
         downloadAudio(blob, id, index) {

@@ -277,6 +277,32 @@ describe('createChatRuntime', () => {
     );
   });
 
+  it('regenerates only the clicked sentence and bypasses its cached audio', async () => {
+    vi.useFakeTimers();
+    const chat: ChatState = {
+      1: {
+        mes: '<say char="爱丽丝">第一句</say><say char="爱丽丝">第二句</say>',
+        is_user: false,
+        swipe_id: 0,
+      },
+    };
+    const { host, settings } = createHost({}, chat);
+    Object.assign(settings, mappedSettings());
+    mountChat(messageHtml(1, '第一句第二句', 0));
+    runtime = createChatRuntime(host);
+    runtime.start();
+
+    const first = document.querySelectorAll<HTMLElement>(`.${SEGMENT_CLASS}`)[0];
+    first?.click();
+    await vi.waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+
+    first?.querySelector<HTMLButtonElement>('[aria-label="重新生成这句语音"]')?.click();
+    await vi.waitFor(() => expect(synthesize).toHaveBeenCalledTimes(2));
+
+    expect(synthesize.mock.calls.map((call) => call[0].text)).toEqual(['第一句', '第一句']);
+    expect(document.querySelectorAll(`.${SEGMENT_CLASS}`)).toHaveLength(2);
+  });
+
   it('silently skips unmapped chars and still decorates mapped lines in the same reply', async () => {
     vi.useFakeTimers();
     const chat: ChatState = {
