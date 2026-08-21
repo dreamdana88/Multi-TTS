@@ -41,6 +41,25 @@ describe('settings panel UI', () => {
     expect(document.querySelectorAll('[role="tab"]')).toHaveLength(4);
   });
 
+  it('keeps all engine tabs on one compact row and names MiniMax regions by market', () => {
+    app = mountPanel();
+    const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([
+      'MiniMax',
+      'GSVI',
+      'Index',
+      'Fish',
+    ]);
+    expect(tabs.map((tab) => tab.getAttribute('aria-label'))).toEqual([
+      'MiniMax',
+      'GSVI',
+      'IndexTTS',
+      'Fish Audio',
+    ]);
+    expect(document.body.textContent).toContain('国内');
+    expect(document.body.textContent).not.toContain('北京');
+  });
+
   it('adds a mapping card and hides the empty state', async () => {
     app = mountPanel();
     const add = Array.from(document.querySelectorAll('button')).find((node) =>

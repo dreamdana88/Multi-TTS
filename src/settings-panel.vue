@@ -753,6 +753,8 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
               class="mtts-tab"
               type="button"
               role="tab"
+              aria-label="MiniMax"
+              title="MiniMax"
               :class="{ 'is-active': is_minimax }"
               :aria-selected="is_minimax"
               @click="selectEngine('minimax')"
@@ -763,6 +765,8 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
               class="mtts-tab"
               type="button"
               role="tab"
+              aria-label="GSVI"
+              title="GSVI"
               :class="{ 'is-active': is_gsvi }"
               :aria-selected="is_gsvi"
               @click="selectEngine('local_gsvi')"
@@ -773,21 +777,25 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
               class="mtts-tab"
               type="button"
               role="tab"
+              aria-label="IndexTTS"
+              title="IndexTTS"
               :class="{ 'is-active': is_index_tts }"
               :aria-selected="is_index_tts"
               @click="selectEngine('index_tts')"
             >
-              IndexTTS
+              Index
             </button>
             <button
               class="mtts-tab"
               type="button"
               role="tab"
+              aria-label="Fish Audio"
+              title="Fish Audio"
               :class="{ 'is-active': is_fish_audio }"
               :aria-selected="is_fish_audio"
               @click="selectEngine('fish_audio')"
             >
-              Fish Audio
+              Fish
             </button>
           </div>
 
@@ -813,7 +821,7 @@ void refreshCache().catch((error) => fail(error, '读取缓存失败'));
                   <span class="mtts-label">区域</span>
                   <select v-model="draft.minimaxRegion" class="text_pole">
                     <option value="international">国际</option>
-                    <option value="beijing">北京</option>
+                    <option value="beijing">国内</option>
                   </select>
                 </label>
               </div>
