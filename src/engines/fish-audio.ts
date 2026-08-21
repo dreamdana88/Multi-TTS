@@ -13,6 +13,10 @@ import {
 export const FISH_AUDIO_API_ORIGIN = 'https://api.fish.audio' as const;
 export const FISH_AUDIO_TTS_ENDPOINT = `${FISH_AUDIO_API_ORIGIN}/v1/tts` as const;
 export const FISH_AUDIO_MODEL_ENDPOINT = `${FISH_AUDIO_API_ORIGIN}/model` as const;
+export const FISH_AUDIO_PROXY_ERROR_MESSAGE = [
+  'Fish Audio 需要启用 SillyTavern CORS 代理。',
+  '请在 config.yaml 中设置 enableCorsProxy: true，并重启 SillyTavern。',
+].join('\n');
 
 const FISH_AUDIO_AUDIO_TYPES = new Set([
   'audio/mpeg',
@@ -23,7 +27,6 @@ const FISH_AUDIO_AUDIO_TYPES = new Set([
 ]);
 
 const FISH_AUDIO_UNAVAILABLE_STATES = new Set([
-  'created',
   'training',
   'failed',
   'deleted',
@@ -80,6 +83,36 @@ export function buildFishAudioModelUrl(
   return url.toString();
 }
 
+export function toSillyTavernProxyUrl(target_url: string): string {
+  return `/proxy/${encodeURIComponent(target_url)}`;
+}
+
+function proxyError(): TtsRequestError {
+  return new TtsRequestError(FISH_AUDIO_PROXY_ERROR_MESSAGE, 'config');
+}
+
+function isSillyTavernProxyErrorBody(value: string): boolean {
+  return /(cors\s+proxy|enablecorsproxy|proxy\s+(?:is\s+)?(?:not\s+enabled|disabled|unavailable)|failed\s+to\s+fetch|\/proxy\/)/i.test(
+    value,
+  );
+}
+
+async function fetchFishAudioViaProxy(
+  fetch_impl: FetchLike,
+  target_url: string,
+  init: RequestInit,
+  timeout_ms: number,
+): Promise<TimedHttpResponse> {
+  try {
+    return await fetchWithTimeout(fetch_impl, toSillyTavernProxyUrl(target_url), init, timeout_ms);
+  } catch (error) {
+    if (error instanceof TtsRequestError) {
+      throw error;
+    }
+    throw proxyError();
+  }
+}
+
 function assertFishAudioRequest(request: FishAudioSynthesisRequest) {
   if (!normalizeFishAudioApiKey(request.apiKey)) {
     throw new TtsRequestError('请先填写 Fish Audio API Key', 'config');
@@ -130,6 +163,9 @@ async function readFishAudioError(
   const label = statusMessage(response.status, operation);
   try {
     const text = await response.text();
+    if (isSillyTavernProxyErrorBody(text)) {
+      return proxyError();
+    }
     try {
       const payload = JSON.parse(text) as unknown;
       if (isRecord(payload)) {
@@ -235,7 +271,7 @@ export function createFishAudioAdapter(options?: { fetchImpl?: FetchLike }): Tts
     if (!api_key) {
       throw new TtsRequestError('请先填写 Fish Audio API Key', 'config');
     }
-    const response = await fetchWithTimeout(
+    const response = await fetchFishAudioViaProxy(
       fetch_impl,
       buildFishAudioModelUrl(),
       {
@@ -283,7 +319,7 @@ export function createFishAudioAdapter(options?: { fetchImpl?: FetchLike }): Tts
         volume: payload.prosody.volume,
         text: request.text,
       });
-      const response = await fetchWithTimeout(
+      const response = await fetchFishAudioViaProxy(
         fetch_impl,
         FISH_AUDIO_TTS_ENDPOINT,
         {
@@ -299,6 +335,10 @@ export function createFishAudioAdapter(options?: { fetchImpl?: FetchLike }): Tts
       }
       const content_type = response.headers.get('content-type');
       if (!isAudioMp3ContentType(content_type)) {
+        const body = await response.blob();
+        if (isSillyTavernProxyErrorBody(await body.text())) {
+          throw proxyError();
+        }
         response.close();
         throw new TtsRequestError(
           `Fish Audio 合成失败：响应类型不是 MP3 音频（当前：${content_type || '缺失'}）`,

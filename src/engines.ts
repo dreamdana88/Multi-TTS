@@ -50,11 +50,13 @@ export {
 export {
   FISH_AUDIO_API_ORIGIN,
   FISH_AUDIO_MODEL_ENDPOINT,
+  FISH_AUDIO_PROXY_ERROR_MESSAGE,
   FISH_AUDIO_TTS_ENDPOINT,
   buildFishAudioModelUrl,
   buildFishAudioSpeechPayload,
   createFishAudioAdapter,
   isFishAudioModel,
+  toSillyTavernProxyUrl,
 } from './engines/fish-audio';
 
 export function createTtsAdapter(engine_id: TtsEngineId): TtsEngineAdapter {

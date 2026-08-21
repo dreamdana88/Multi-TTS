@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   FISH_AUDIO_MODEL_ENDPOINT,
+  FISH_AUDIO_PROXY_ERROR_MESSAGE,
   FISH_AUDIO_TTS_ENDPOINT,
   buildFishAudioModelUrl,
   buildFishAudioSpeechPayload,
   createFishAudioAdapter,
   createTtsAdapter,
+  toSillyTavernProxyUrl,
 } from '../engines';
 import type { FishAudioSynthesisRequest } from '../engines';
 
@@ -53,9 +55,19 @@ describe('Fish Audio adapter', () => {
     );
   });
 
+  it('encodes the complete Fish target URL for the SillyTavern proxy', () => {
+    const target = buildFishAudioModelUrl();
+    const proxy_url = toSillyTavernProxyUrl(target);
+
+    expect(proxy_url).toBe(`/proxy/${encodeURIComponent(target)}`);
+    expect(decodeURIComponent(proxy_url.slice('/proxy/'.length))).toBe(target);
+  });
+
   it('checks the connection through model listing with Bearer authorization', async () => {
     const fetch_impl = vi.fn(async (url: string, init?: RequestInit) => {
-      expect(url).toBe(`${FISH_AUDIO_MODEL_ENDPOINT}?self=true&page_size=100&page_number=1`);
+      expect(url).toBe(
+        toSillyTavernProxyUrl(`${FISH_AUDIO_MODEL_ENDPOINT}?self=true&page_size=100&page_number=1`),
+      );
       expect(init?.method).toBe('GET');
       expect(init?.headers).toEqual({ Authorization: 'Bearer fish-secret' });
       return jsonResponse({ items: [] });
@@ -75,6 +87,7 @@ describe('Fish Audio adapter', () => {
         jsonResponse({
           items: [
             { _id: 'tts-1', type: 'tts', state: 'trained', title: '森' },
+            { _id: 'tts-created', type: 'tts', state: 'created', title: '快速音色' },
             { _id: 'tts-2', type: 'tts', state: 'failed', title: '失败' },
             { _id: 'tts-5', type: 'tts', state: 'training', title: '训练中' },
             { _id: 'svc-1', type: 'svc', state: 'trained', title: '服务' },
@@ -94,12 +107,20 @@ describe('Fish Audio adapter', () => {
         language: undefined,
         languages: undefined,
       },
+      {
+        id: 'tts-created',
+        name: '快速音色',
+        description: undefined,
+        source: 'fish_audio',
+        language: undefined,
+        languages: undefined,
+      },
     ]);
   });
 
   it('sends only the frozen MP3 synthesis fields and preserves bracket prompts', async () => {
     const fetch_impl = vi.fn(async (url: string, init?: RequestInit) => {
-      expect(url).toBe(FISH_AUDIO_TTS_ENDPOINT);
+      expect(url).toBe(toSillyTavernProxyUrl(FISH_AUDIO_TTS_ENDPOINT));
       expect(init?.method).toBe('POST');
       expect(init?.headers).toEqual({
         Authorization: 'Bearer fish-secret',
@@ -179,6 +200,27 @@ describe('Fish Audio adapter', () => {
     } finally {
       log.mockRestore();
     }
+  });
+
+  it('explains when the SillyTavern CORS proxy is unavailable', async () => {
+    expect(FISH_AUDIO_PROXY_ERROR_MESSAGE).toBe(
+      'Fish Audio 需要启用 SillyTavern CORS 代理。\n请在 config.yaml 中设置 enableCorsProxy: true，并重启 SillyTavern。',
+    );
+
+    await expect(
+      createFishAudioAdapter({
+        fetchImpl: async () => {
+          throw new TypeError('Failed to fetch');
+        },
+      }).synthesize(sampleRequest()),
+    ).rejects.toMatchObject({ code: 'config', message: FISH_AUDIO_PROXY_ERROR_MESSAGE });
+
+    await expect(
+      createFishAudioAdapter({
+        fetchImpl: async () =>
+          jsonResponse({ error: 'CORS proxy is not enabled; set enableCorsProxy: true' }, 502),
+      }).checkHealth(sampleRequest()),
+    ).resolves.toEqual({ ok: false, message: FISH_AUDIO_PROXY_ERROR_MESSAGE });
   });
 
   it('maps HTTP statuses without exposing authorization data', async () => {
