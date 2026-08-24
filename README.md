@@ -27,8 +27,4 @@ SillyTavern 第三方 TTS 扩展，支持 MiniMax、Local-GSVI、IndexTTS 和 Fi
 
 安装并启用 SillyTavern Server Plugins 后，重启 SillyTavern，再在本扩展中配置 Fish Audio。
 
-
-```
-
-插件测试版本：SillyTavern **1.18.0**。
-```
+开发基准为 SillyTavern 1.18.0，不锁定客户端版本。

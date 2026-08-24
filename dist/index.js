@@ -6415,9 +6415,7 @@ function Mf(e) {
 function Yr() {
   const e = If(globalThis.SillyTavern);
   if (!e)
-    throw new Error(
-      "SillyTavern.getContext() 不可用。此扩展需要在 SillyTavern 1.18.0 或更高版本中运行"
-    );
+    throw new Error("SillyTavern.getContext() 不可用。请在 SillyTavern 中加载此扩展");
   return Mf(e.getContext());
 }
 function Zr() {

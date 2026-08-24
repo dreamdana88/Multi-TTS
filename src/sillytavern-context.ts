@@ -128,9 +128,7 @@ function asContext(value: unknown): SillyTavernContext {
 export function getSillyTavernContext(): SillyTavernContext {
   const api = asSillyTavernApi((globalThis as { SillyTavern?: unknown }).SillyTavern);
   if (!api) {
-    throw new Error(
-      'SillyTavern.getContext() 不可用。此扩展需要在 SillyTavern 1.18.0 或更高版本中运行',
-    );
+    throw new Error('SillyTavern.getContext() 不可用。请在 SillyTavern 中加载此扩展');
   }
   return asContext(api.getContext());
 }

@@ -14,7 +14,7 @@ function readJson(file_name: string) {
 }
 
 describe('manifest and package metadata', () => {
-  it('matches the official SillyTavern 1.18 extension fields used by this skeleton', () => {
+  it('matches the official SillyTavern extension fields used by this skeleton', () => {
     const manifest = readJson('manifest.json');
     const package_json = readJson('package.json');
 
@@ -24,7 +24,7 @@ describe('manifest and package metadata', () => {
     expect(manifest.js).toBe('dist/index.js');
     expect(manifest.css).toBe('dist/index.css');
     expect(manifest.author).toBe('dreamdana88');
-    expect(manifest.minimum_client_version).toBe('1.18.0');
+    expect(manifest).not.toHaveProperty('minimum_client_version');
     expect(manifest.homePage).toBe('https://github.com/dreamdana88/Multi-TTS');
     expect(manifest.hooks).toEqual({
       install: 'onInstall',

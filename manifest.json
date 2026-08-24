@@ -10,7 +10,6 @@
   "version": "0.1.0",
   "homePage": "https://github.com/dreamdana88/Multi-TTS",
   "auto_update": true,
-  "minimum_client_version": "1.18.0",
   "hooks": {
     "install": "onInstall",
     "activate": "onActivate",
