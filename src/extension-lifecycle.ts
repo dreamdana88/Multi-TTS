@@ -35,7 +35,6 @@ export function createExtensionRuntime(
   let stop_app_ready: (() => void) | null = null;
   let stop_pagehide: (() => void) | null = null;
   let root: HTMLElement | null = null;
-  const relocate_timers: number[] = [];
 
   function currentSettings(): ExtensionSettings {
     return parseExtensionSettings(host.readRawSettings());
@@ -77,30 +76,12 @@ export function createExtensionRuntime(
     return true;
   }
 
-  function relocateIfNeeded() {
-    if (!root || !active) {
-      return;
-    }
-    const preferred = host.findSettingsRoot();
-    if (preferred && root.parentElement !== preferred) {
-      preferred.appendChild(root);
-      console.info(`${LOG_PREFIX} settings panel moved to the visible extensions list`);
-    }
-  }
-
-  function scheduleRelocate() {
-    for (const delay_ms of [0, 200, 800, 2000]) {
-      relocate_timers.push(window.setTimeout(relocateIfNeeded, delay_ms));
-    }
-  }
-
   function teardown(options: { removeSettings: boolean }) {
     side_effects.stopRuntime?.();
     side_effects.stopPlayback?.();
     stop_app_ready?.();
     stop_app_ready = null;
     pending_app_ready = false;
-    relocate_timers.splice(0).forEach((timer) => window.clearTimeout(timer));
 
     stop_pagehide?.();
     stop_pagehide = null;
@@ -119,27 +100,31 @@ export function createExtensionRuntime(
 
   function activate() {
     if (active || pending_app_ready) {
-      relocateIfNeeded();
       return;
     }
 
     ensureSettingsPersisted();
-    if (!mountIfPossible()) {
-      pending_app_ready = true;
+
+    if (mountIfPossible()) {
+      return;
     }
 
+    pending_app_ready = true;
     stop_app_ready = host.onAppReady(() => {
-      if (pending_app_ready) {
-        pending_app_ready = false;
-        if (!mountIfPossible()) {
-          console.error(
-            `${LOG_PREFIX} 未找到扩展设置容器 (#extensions_settings2 / #extensions_settings)，无法挂载设置面板`,
-          );
-        }
+      const should_mount = pending_app_ready;
+      pending_app_ready = false;
+      const stop = stop_app_ready;
+      stop_app_ready = null;
+      stop?.();
+      if (!should_mount) {
+        return;
       }
-      relocateIfNeeded();
+      if (!mountIfPossible()) {
+        console.error(
+          `${LOG_PREFIX} 未找到扩展设置容器 (#extensions_settings2 / #extensions_settings)，无法挂载设置面板`,
+        );
+      }
     });
-    scheduleRelocate();
   }
 
   function setEnabled(enabled: boolean) {
@@ -198,30 +183,9 @@ export function createExtensionRuntime(
   };
 }
 
-function foreignDrawerCount(container: HTMLElement): number {
-  let count = 0;
-  const drawers = Array.from(container.querySelectorAll('.inline-drawer'));
-  for (const drawer of drawers) {
-    if (!drawer.closest(`#${EXTENSION_ROOT_ID}`)) {
-      count += 1;
-    }
-  }
-  return count;
-}
-
 export function findSettingsRoot(): HTMLElement | null {
-  const settings2 = document.querySelector<HTMLElement>('#extensions_settings2');
-  const settings = document.querySelector<HTMLElement>('#extensions_settings');
-  const settings2_count = settings2 ? foreignDrawerCount(settings2) : -1;
-  const settings_count = settings ? foreignDrawerCount(settings) : -1;
-  if (settings2_count < 0 && settings_count < 0) {
-    return null;
-  }
-  if (settings_count > settings2_count) {
-    return settings;
-  }
-  if (settings2_count > settings_count) {
-    return settings2;
-  }
-  return settings2 ?? settings;
+  return (
+    document.querySelector<HTMLElement>('#extensions_settings2') ??
+    document.querySelector<HTMLElement>('#extensions_settings')
+  );
 }

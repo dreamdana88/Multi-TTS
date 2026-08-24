@@ -72,7 +72,6 @@ function createPanel() {
 
 describe('createExtensionRuntime', () => {
   afterEach(() => {
-    vi.useRealTimers();
     document.body.innerHTML = '';
   });
 
@@ -100,44 +99,6 @@ describe('createExtensionRuntime', () => {
     runtime.activate();
 
     expect(document.querySelector('#extensions_settings #tavern-multi-tts-root')).not.toBeNull();
-  });
-
-  it('prefers the extensions list that already has native drawers', () => {
-    document.body.innerHTML = [
-      '<div id="extensions_settings2"></div>',
-      '<div id="extensions_settings"><div class="inline-drawer"></div></div>',
-    ].join('');
-    expect(findSettingsRoot()?.id).toBe('extensions_settings');
-
-    document.body.innerHTML = [
-      '<div id="extensions_settings2"><div class="inline-drawer"></div></div>',
-      '<div id="extensions_settings"></div>',
-    ].join('');
-    expect(findSettingsRoot()?.id).toBe('extensions_settings2');
-  });
-
-  it('moves the panel onto the visible drawer list after other extensions render', async () => {
-    vi.useFakeTimers();
-    document.body.innerHTML = [
-      '<div id="extensions_settings2"></div>',
-      '<div id="extensions_settings"></div>',
-    ].join('');
-    const { host } = createHost();
-    const panel = createPanel();
-    const runtime = createExtensionRuntime(host, panel);
-
-    runtime.activate();
-    expect(document.querySelector('#extensions_settings2 #tavern-multi-tts-root')).not.toBeNull();
-
-    document
-      .querySelector('#extensions_settings')
-      ?.insertAdjacentHTML('beforeend', '<div class="inline-drawer"></div>');
-    await vi.advanceTimersByTimeAsync(200);
-
-    expect(document.querySelector('#extensions_settings #tavern-multi-tts-root')).not.toBeNull();
-    expect(document.querySelector('#extensions_settings2 #tavern-multi-tts-root')).toBeNull();
-    runtime.destroy();
-    vi.useRealTimers();
   });
 
   it('waits for APP_READY when the settings container is not mounted yet', () => {
