@@ -1,7 +1,15 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp, nextTick } from 'vue';
 import { DEFAULT_EXTENSION_SETTINGS } from './extension-settings';
 import SettingsPanel from './settings-panel.vue';
+
+const style_css = readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), 'style.css'),
+  'utf8',
+);
 
 function mountPanel(
   settings = DEFAULT_EXTENSION_SETTINGS,
@@ -58,6 +66,11 @@ describe('settings panel UI', () => {
     ]);
     expect(document.body.textContent).toContain('国内');
     expect(document.body.textContent).not.toContain('北京');
+    expect(style_css).toMatch(
+      /\.mtts-tabs \{[\s\S]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/,
+    );
+    const mobile_css = style_css.split('@media (max-width: 520px)')[1] ?? '';
+    expect(mobile_css).not.toMatch(/\.mtts-tabs[\s\S]{0,80}grid-template-columns:\s*1fr/);
   });
 
   it('adds a mapping card and hides the empty state', async () => {

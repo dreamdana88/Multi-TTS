@@ -143,8 +143,9 @@
 
 .tavern-multi-tts-settings .mtts-tabs {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
 }
 
 .tavern-multi-tts-settings .mtts-tab,
@@ -175,6 +176,10 @@
     box-shadow var(--mtts-ease);
   white-space: nowrap;
   width: auto;
+}
+
+.tavern-multi-tts-settings .mtts-tab {
+  width: 100%;
 }
 
 .tavern-multi-tts-settings .mtts-tab.is-active,
@@ -585,12 +590,19 @@
 }
 
 @media (max-width: 520px) {
-  .tavern-multi-tts-settings .mtts-tabs,
   .tavern-multi-tts-settings .mtts-grid {
     grid-template-columns: 1fr;
   }
 
-  .tavern-multi-tts-settings .mtts-tab,
+  .tavern-multi-tts-settings .mtts-tabs {
+    gap: 4px;
+  }
+
+  .tavern-multi-tts-settings .mtts-tab {
+    font-size: 12px;
+    padding: 0 4px;
+  }
+
   .tavern-multi-tts-settings .mtts-btn,
   .tavern-multi-tts-settings .menu_button,
   .tavern-multi-tts-settings .mtts-mapping-actions .mtts-btn {
